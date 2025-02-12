@@ -1,0 +1,9 @@
+[submodule "tradeport-backend-mssql"]
+	path = tradeport-backend-mssql
+	url = git@github.com:e1509819/tradeport-backend-mssql.git
+[submodule "tradeport-backend-productservice"]
+	path = tradeport-backend-productservice
+	url = git@github.com:e1509819/tradeport-backend-productservice.git
+[submodule "tradeport-frontend"]
+	path = tradeport-frontend
+	url = git@github.com:e1509819/tradeport-frontend.git
