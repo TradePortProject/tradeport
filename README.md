@@ -8,6 +8,12 @@
 - Docker: Ensure Docker is installed on your machine. You can download it from [here](https://www.docker.com/products/docker-desktop).
 - Docker Compose: Docker Compose is typically included with Docker Desktop.
 
+## How to Use Git Submodules
+
+```bash
+git submodule update --init --recursive
+```
+
 ## Directory Structure
 
 ```

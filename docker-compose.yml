@@ -1,22 +1,22 @@
 services:
   mssql:
-    build: ../tradeport-backend-mssql
+    build: ./tradeport-backend-mssql
     ports:
       - "1433:1433"
     networks:
       - my_network
 
   frontend:
-    build: ../tradeport-frontend
+    build: ./tradeport-frontend
     ports:
       - "3001:3001"
-    environment: 
+    environment:
       - PORT=3001
     networks:
-     - my_network  
+      - my_network
 
   productservice:
-    build: ../tradeport-backend-productservice
+    build: ./tradeport-backend-productservice
     ports:
       - "3016:3016"
     environment:
