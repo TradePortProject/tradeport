@@ -22,17 +22,17 @@ tradeport-project/
 
 Build and Start the Services:
 
-docker-compose up --build
+	docker-compose up --build
 
 
 Verify the Services:
 
-MSSQL: Connect to the database using a SQL client on localhost:1433.
+	MSSQL: Connect to the database using a SQL client on localhost:1433.
 
-Frontend: Access the frontend service on http://localhost:3001.
+	Frontend: Access the frontend service on http://localhost:3001.
 
-Product Service: Access the product service API on http://localhost:3016/api/ProductManagement/.
+	Product Service: Access the product service API on http://localhost:3016/api/ProductManagement/.
 
 Stopping the Services:
 
-docker-compose down
+	docker-compose down
