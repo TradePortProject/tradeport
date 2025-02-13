@@ -1,30 +1,22 @@
 services:
   mssql:
-    build: ../tradeport-backend-mssql
-    ports:
-      - "1433:1433"
+    extends:
+      file: ../tradeport-backend-mssql/docker-compose.yml
+      service: mssql
     networks:
       - my_network
 
   frontend:
-    build: ../tradeport-frontend
-    ports:
-      - "3001:3001"
-    environment: 
-      - PORT=3001
+    extends:
+      file: ../tradeport-frontend/docker-compose.yml
+      service: frontend
     networks:
-     - my_network  
+      - my_network
 
   productservice:
-    build: ../tradeport-backend-productservice
-    ports:
-      - "3016:3016"
-    environment:
-      - ASPNETCORE_URLS=http://+:3016
-      - DB_USER=sa
-      - DB_PASSWORD=Your_password123
-      - DB_SERVER=mssql
-      - DB_DATABASE=tradeportdb
+    extends:
+      file: ../tradeport-backend-productservice/docker-compose.yml
+      service: productservice
     networks:
       - my_network
 
