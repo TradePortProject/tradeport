@@ -22,6 +22,13 @@ tradeport-project/
 
 Build and Start the Services:
 
+	git clone https://github.com/e1509819/tradeport-frontend.git
+	git clone https://github.com/e1509819/tradeport-backend-productservice.git
+	git clone https://github.com/e1509819/tradeport-backend-mssql.git
+	git clone https://github.com/e1509819/tradeport.git
+
+	cd tradeport
+
 	docker-compose up --build
 
 
