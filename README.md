@@ -22,14 +22,23 @@ tradeport-project/
 
 Build and Start the Services:
 
-	git clone https://github.com/e1509819/tradeport-frontend.git
-	git clone https://github.com/e1509819/tradeport-backend-productservice.git
-	git clone https://github.com/e1509819/tradeport-backend-mssql.git
-	git clone https://github.com/e1509819/tradeport.git
+```bash
+git clone https://github.com/e1509819/tradeport-frontend.git
+git clone https://github.com/e1509819/tradeport-backend-productservice.git
+git clone https://github.com/e1509819/tradeport-backend-mssql.git
+git clone https://github.com/e1509819/tradeport.git
 
-	cd tradeport
+cd tradeport
 
-	docker-compose up --build
+docker-compose up --build
+```
+
+Create a network and check if network is present
+```bash
+docker network create my_network
+docker network ls
+
+```
 
 
 Verify the Services:
