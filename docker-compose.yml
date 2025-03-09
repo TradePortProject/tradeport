@@ -19,6 +19,13 @@ services:
       service: productservice
     networks:
       - my_network
+      
+  orderservice:
+    extends:
+      file: ../tradeport-backend-orderservice/docker-compose.yml
+      service: orderservice
+    networks:
+      - my_network      
 
 networks:
   my_network:
