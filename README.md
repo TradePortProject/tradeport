@@ -9,16 +9,17 @@ This project consists of three main services: `mssql`, `frontend`, and `products
 
 ## Directory Structure
 
+```
 tradeport-project/ 
 │ 
 ├── docker-compose.yml
 ├── tradeport-backend-mssql/ 
-│ 					└── Dockerfile 
+│ 	└── Dockerfile 
 ├── tradeport-frontend/ 
-│ 					└── Dockerfile 
+│ 	└── Dockerfile 
 └── tradeport-backend-productservice/ 
-					└── Dockerfile
-					
+	└── Dockerfile
+```					
 
 Build and Start the Services:
 
