@@ -14,11 +14,11 @@ tradeport-project/
 │
 ├── docker-compose.yml
 ├── tradeport-backend-mssql/
-│ 					└── Dockerfile
+│ 	└── Dockerfile
 ├── tradeport-frontend/
-│ 					└── Dockerfile
+│ 	└── Dockerfile
 └── tradeport-backend-productservice/
-					└── Dockerfile
+	└── Dockerfile
 ```
 
 Build and Start the Services:
