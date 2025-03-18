@@ -9,37 +9,44 @@ This project consists of three main services: `mssql`, `frontend`, and `products
 
 ## Directory Structure
 
-tradeport-project/ 
-│ 
+```
+tradeport-project/
+│
 ├── docker-compose.yml
-├── tradeport-backend-mssql/ 
-│ 					└── Dockerfile 
-├── tradeport-frontend/ 
-│ 					└── Dockerfile 
-└── tradeport-backend-productservice/ 
+├── tradeport-backend-mssql/
+│ 					└── Dockerfile
+├── tradeport-frontend/
+│ 					└── Dockerfile
+└── tradeport-backend-productservice/
 					└── Dockerfile
-					
+```
 
 Build and Start the Services:
 
-	git clone https://github.com/e1509819/tradeport-frontend.git
-	git clone https://github.com/e1509819/tradeport-backend-productservice.git
-	git clone https://github.com/e1509819/tradeport-backend-mssql.git
-	git clone https://github.com/e1509819/tradeport.git
+```bash
+git clone https://github.com/e1509819/tradeport-frontend.git
+git clone https://github.com/e1509819/tradeport-backend-productservice.git
+git clone https://github.com/e1509819/tradeport-backend-mssql.git
+git clone https://github.com/e1509819/tradeport.git
+```
 
-	cd tradeport
+```bash
+cd tradeport
+```
 
-	docker-compose up --build
-
+```bash
+docker-compose up --build
+```
 
 Verify the Services:
 
-	MSSQL: Connect to the database using a SQL client on localhost:1433.
-
-	Frontend: Access the frontend service on http://localhost:3001.
-
-	Product Service: Access the product service API on http://localhost:3016/api/ProductManagement/.
+1. MSSQL: Connect to the database using a SQL client on localhost:1433
+2. Frontend: Access the frontend service on http://localhost:3001
+3. Product Service: Access the product service API on http://localhost:3016/api/ProductManagement/
+4. User Management : Access the User Management service at http://localhost:7237
 
 Stopping the Services:
 
-	docker-compose down
+```bash
+docker-compose down
+```

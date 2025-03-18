@@ -20,6 +20,13 @@ services:
     networks:
       - my_network
 
+  identityservice:
+    extends:
+      file: ../tradeport-backend-identity/docker-compose.yml
+      service: identityservice
+    networks:
+      - my_network
+
 networks:
   my_network:
     external: true
