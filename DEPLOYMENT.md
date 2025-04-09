@@ -613,8 +613,6 @@ EOF
 | **Process Standardization**     | Consistent deployment process across environments |
 | **Reduced Configuration Drift** | Infrastructure templates ensure consistency       |
 
-With this structure, we can start building out the infrastructure as code implementation while maintaining a clear separation of concerns.
-
 ## 5. Implementing HTTPS for Docker Containers
 
 ### 5.1 HTTPS Architecture Overview
@@ -1016,3 +1014,81 @@ curl -k https://your-domain.com/api/identity/healthcheck
 | **Incorrect proxy headers**     | Ensure `X-Forwarded-Proto` and other headers are set correctly |
 
 By implementing this approach, our Docker containers don't need to handle HTTPS directly. Instead, NGINX serves as a secure front-end that handles all TLS/SSL traffic, routing the decrypted requests to the appropriate containers.
+
+## 6. CI/CD Pipeline Implementation
+
+### 6.1 Continuous Deployment (CD) Pipeline
+
+The continuous deployment pipeline for Tradeport consists of the following essential steps:
+
+```plantuml
+@startuml CD Pipeline Steps
+!define RECTANGLE class
+
+skinparam componentStyle rectangle
+skinparam monochrome true
+
+rectangle "Continuous Deployment Pipeline" {
+  [Build Validation] --> [Docker Image Creation]
+  [Docker Image Creation] --> [Image Tagging]
+  [Image Tagging] --> [Registry Push]
+  [Registry Push] --> [Environment Selection]
+  [Environment Selection] --> [Configuration Update]
+  [Configuration Update] --> [Infrastructure Provisioning]
+  [Infrastructure Provisioning] --> [Deployment]
+  [Deployment] --> [Health Check]
+  [Health Check] --> [Rollback if Needed]
+}
+@enduml
+```
+
+#### Key CD Pipeline Steps
+
+| Step                               | Description                                     | Tools                  |
+| ---------------------------------- | ----------------------------------------------- | ---------------------- |
+| **1. Build Validation**            | Verify that CI build and tests passed           | GitHub Actions         |
+| **2. Docker Image Creation**       | Build optimized Docker images for production    | Docker BuildKit        |
+| **3. Image Tagging**               | Tag images with appropriate version/environment | Docker                 |
+| **4. Registry Push**               | Push images to Docker Hub or private registry   | Docker                 |
+| **5. Environment Selection**       | Determine target environment (dev/staging/prod) | GitHub Actions         |
+| **6. Configuration Update**        | Update environment-specific configurations      | Ansible                |
+| **7. Infrastructure Provisioning** | Create/update necessary infrastructure          | Terraform              |
+| **8. Deployment**                  | Deploy containers to target environment         | Ansible/Docker Compose |
+| **9. Health Check**                | Verify deployment health and functionality      | Health APIs/Monitoring |
+| **10. Rollback if Needed**         | Automatically rollback if health checks fail    | GitHub Actions/Ansible |
+
+#### CD Best Practices for Tradeport
+
+1. **Immutable Infrastructure**: Each deployment creates new resources rather than modifying existing ones
+2. **Blue-Green Deployment**: Deploy to a parallel environment and switch traffic once verified
+3. **Secrets Management**: Use GitHub Secrets and environment-specific variable injection
+4. **Idempotency**: Deployment can be re-run without side effects
+5. **Auditability**: Track who deployed what and when
+6. **Approval Gates**: Require manual approval for production deployments
+
+#### Implementation Details
+
+For each service (frontend, identity, etc.), the CD workflow must:
+
+1. Retrieve the latest successful build artifacts
+2. Build production-optimized Docker images
+3. Tag images with:
+   - Commit SHA for traceability
+   - Environment name for clarity (dev/staging/prod)
+   - Latest tag for convenience
+4. Push images to Docker Hub with appropriate access controls
+5. Update infrastructure configurations with new image tags
+6. Provision infrastructure changes if needed
+7. Deploy the updated services
+8. Verify deployment success via health endpoints
+9. Notify stakeholders of deployment status
+
+#### Continuous Delivery vs. Continuous Deployment
+
+For the Tradeport project, we recommend:
+
+- **Dev**: Fully automated continuous deployment
+- **Staging**: Automated deployment with minimal approval
+- **Production**: Continuous delivery with explicit approval step
+
+This approach balances development velocity with operational stability across environments.

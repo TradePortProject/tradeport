@@ -1,0 +1,58 @@
+- name: Deploy Latest Version of TradePort
+  hosts: tradeport
+  become: true
+  
+  vars:
+    app_dir: /opt/tradeport
+    compose_file: docker-compose.dev.yml
+
+  tasks:
+    - name: Ensure app directory exists
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: "0755"
+        
+    - name: Upload updated Docker Compose file
+      copy:
+        src: ../{{ compose_file }}
+        dest: "{{ app_dir }}/{{ compose_file }}"
+        mode: "0644"
+        
+    - name: Create .env file if needed
+      copy:
+        content: |
+          VITE_API_URL=http://{{ inventory_hostname }}:3000/api
+        dest: "{{ app_dir }}/.env"
+        mode: "0644"
+
+    - name: Pull latest Docker images
+      shell: docker compose -f {{ compose_file }} pull
+      args:
+        chdir: "{{ app_dir }}"
+
+    - name: Restart services with Docker Compose
+      shell: docker compose -f {{ compose_file }} up -d --remove-orphans
+      args:
+        chdir: "{{ app_dir }}"
+        
+    - name: Check service status
+      shell: docker compose -f {{ compose_file }} ps
+      args:
+        chdir: "{{ app_dir }}"
+      register: service_status
+      
+    - name: Display service status
+      debug:
+        var: service_status.stdout_lines
+        
+    - name: Check backend health
+      uri:
+        url: "http://localhost:3000/api"
+        return_content: yes
+      register: backend_health
+      ignore_errors: yes
+      
+    - name: Report backend health
+      debug:
+        msg: "Backend health check: {{ 'Success' if backend_health.status == 200 else 'Failed - ' + backend_health.msg | default('Unknown error') }}"

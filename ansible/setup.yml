@@ -1,0 +1,100 @@
+- name: Initial Setup for TradePort Droplet
+  hosts: tradeport
+  become: true
+  
+  vars:
+    docker_compose_version: "v2.24.2"
+    
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install system prerequisites
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - git
+          - python3-pip
+          - ufw
+        state: present
+        
+    - name: Configure UFW - Allow SSH
+      ufw:
+        rule: allow
+        name: OpenSSH
+        
+    - name: Configure UFW - Allow port 80 (HTTP)
+      ufw:
+        rule: allow
+        port: '80'
+        proto: tcp
+        
+    - name: Configure UFW - Allow port 443 (HTTPS)
+      ufw:
+        rule: allow
+        port: '443'
+        proto: tcp
+        
+    - name: Configure UFW - Allow port 3000 (Backend)
+      ufw:
+        rule: allow
+        port: '3000'
+        proto: tcp
+        
+    - name: Configure UFW - Allow port 5173 (Frontend)
+      ufw:
+        rule: allow
+        port: '5173'
+        proto: tcp
+        
+    - name: Enable UFW
+      ufw:
+        state: enabled
+        policy: deny
+
+    - name: Add Docker GPG key and repo
+      shell: |
+        install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        echo \
+          "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+          $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+      args:
+        creates: /etc/apt/keyrings/docker.gpg
+
+    - name: Install Docker packages
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        update_cache: yes
+
+    - name: Enable Docker service
+      service:
+        name: docker
+        state: started
+        enabled: true
+        
+    - name: Add root user to docker group
+      user:
+        name: root
+        groups: docker
+        append: yes
+
+    - name: Install Docker Compose plugin if not installed by apt
+      shell: |
+        if ! command -v docker compose &> /dev/null; then
+          mkdir -p ~/.docker/cli-plugins
+          curl -SL https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose
+          chmod +x ~/.docker/cli-plugins/docker-compose
+        fi
+      args:
+        creates: ~/.docker/cli-plugins/docker-compose

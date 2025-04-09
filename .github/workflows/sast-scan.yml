@@ -1,0 +1,77 @@
+name: Stage 3 – Security Scan
+
+on:
+  push:
+    branches: [main, develop, githubcicd]
+  # Optional: Enable manual triggering
+  workflow_dispatch:
+
+jobs:
+  sast-scan:
+    name: SAST Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for package.json
+        id: check-package-json
+        run: |
+          if [ -f "package.json" ]; then
+            echo "js_project=true" >> $GITHUB_OUTPUT
+          else
+            echo "js_project=false" >> $GITHUB_OUTPUT
+            echo "No package.json found. Skipping Node.js dependency checks."
+          fi
+
+      - name: Install Node.js Dependencies
+        if: steps.check-package-json.outputs.js_project == 'true'
+        run: |
+          npm ci --force || npm install --force
+
+      - name: Download OWASP Dependency Check
+        run: |
+          wget https://github.com/jeremylong/DependencyCheck/releases/download/v7.2.0/dependency-check-7.2.0-release.zip
+          unzip dependency-check-7.2.0-release.zip
+
+      - name: Run scan with ODC for Node.js
+        if: steps.check-package-json.outputs.js_project == 'true'
+        run: |
+          mkdir -p reports
+          dependency-check/bin/dependency-check.sh --project "learning-ansible-js" --scan . > reports/odc-js-report.txt
+
+      - name: Run scan for Ansible files
+        run: |
+          mkdir -p reports
+          # Scan for Ansible YAML files
+          find . -name "*.yml" -not -path "*/\.*" -not -path "*/node_modules/*" > reports/ansible-files.txt
+
+          # Basic security check for Ansible files (example - could be expanded)
+          echo "Checking Ansible files for potential security issues..." > reports/ansible-security-report.txt
+          grep -r "no_log: false" --include="*.yml" . >> reports/ansible-security-report.txt || echo "No explicit no_log: false found" >> reports/ansible-security-report.txt
+          grep -r "validate_certs: false" --include="*.yml" . >> reports/ansible-security-report.txt || echo "No validate_certs: false found" >> reports/ansible-security-report.txt
+
+      - name: Create summary report
+        run: |
+          echo "# Security Scan Results" > reports/summary.md
+          echo "## Scan completed at $(date)" >> reports/summary.md
+          echo "Scanned repository: $GITHUB_REPOSITORY" >> reports/summary.md
+
+          if [ -f "reports/odc-js-report.txt" ]; then
+            echo "* Node.js dependencies scanned" >> reports/summary.md
+          else
+            echo "* No Node.js dependencies to scan" >> reports/summary.md
+          fi
+
+          echo "* Ansible files scanned: $(wc -l < reports/ansible-files.txt || echo 0) files" >> reports/summary.md
+
+      - name: Archive security reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            reports/
+          retention-days: 14

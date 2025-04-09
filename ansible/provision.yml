@@ -1,0 +1,68 @@
+---
+- name: Provision TradePort Droplet
+  hosts: tradeport
+  become: true
+
+  vars:
+    app_dir: /opt/tradeport
+    docker_compose_version: "v2.24.2"
+
+  tasks:
+    # First run the setup playbook to set up the basic requirements
+    - name: Include setup tasks
+      import_playbook: setup.yml
+
+    - name: Ensure app directory exists
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Upload latest Docker Compose file
+      copy:
+        src: ../docker-compose.dev.yml
+        dest: "{{ app_dir }}/docker-compose.dev.yml"
+        mode: "0644"
+
+    - name: Create .env file
+      copy:
+        content: |
+          VITE_API_URL=http://{{ inventory_hostname }}:3000/api
+        dest: "{{ app_dir }}/.env"
+        mode: "0644"
+
+    - name: Login to Docker Hub if credentials provided
+      shell: docker login -u {{ lookup('env', 'DOCKERHUB_USERNAME') }} -p {{ lookup('env', 'DOCKERHUB_TOKEN') }}
+      no_log: true
+      when: lookup('env', 'DOCKERHUB_USERNAME') != '' and lookup('env', 'DOCKERHUB_TOKEN') != ''
+      ignore_errors: yes
+
+    - name: Pull latest Docker images
+      shell: docker compose -f docker-compose.dev.yml pull
+      args:
+        chdir: "{{ app_dir }}"
+
+    - name: Restart services with Docker Compose
+      shell: docker compose -f docker-compose.dev.yml up -d --remove-orphans
+      args:
+        chdir: "{{ app_dir }}"
+      
+    - name: Wait for services to start
+      pause:
+        seconds: 10
+        
+    - name: Check service status
+      shell: docker compose -f docker-compose.dev.yml ps
+      args:
+        chdir: "{{ app_dir }}"
+      register: service_status
+      
+    - name: Display service status
+      debug:
+        var: service_status.stdout_lines
+        
+    - name: Create cron job for service health check
+      cron:
+        name: "Check and restart TradePort services if needed"
+        minute: "*/15"
+        job: "cd {{ app_dir }} && docker compose -f docker-compose.dev.yml ps | grep -q 'Exit' && docker compose -f docker-compose.dev.yml up -d || true"
