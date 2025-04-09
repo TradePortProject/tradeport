@@ -614,3 +614,405 @@ EOF
 | **Reduced Configuration Drift** | Infrastructure templates ensure consistency       |
 
 With this structure, we can start building out the infrastructure as code implementation while maintaining a clear separation of concerns.
+
+## 5. Implementing HTTPS for Docker Containers
+
+### 5.1 HTTPS Architecture Overview
+
+When serving applications from Docker containers, there are several approaches to implement HTTPS:
+
+```plantuml
+@startuml HTTPS Implementation Options
+!define RECTANGLE class
+
+skinparam componentStyle rectangle
+skinparam monochrome true
+
+cloud "Internet" {
+}
+
+rectangle "Option 1: Reverse Proxy" {
+  RECTANGLE "NGINX/Traefik" as proxy
+  RECTANGLE "Docker Container" as app1
+  proxy --> app1: HTTP (internal)
+}
+
+rectangle "Option 2: In-Container TLS" {
+  RECTANGLE "Docker Container with TLS" as app2
+}
+
+rectangle "Option 3: Load Balancer" {
+  RECTANGLE "Load Balancer with TLS" as lb
+  RECTANGLE "Docker Container" as app3
+  lb --> app3: HTTP (internal)
+}
+
+Internet --> proxy: HTTPS
+Internet --> app2: HTTPS
+Internet --> lb: HTTPS
+@enduml
+```
+
+### 5.2 Recommended Approach: NGINX Reverse Proxy
+
+For our Tradeport application, we'll implement HTTPS using an NGINX reverse proxy because it offers:
+
+| Advantage                      | Description                                            |
+| ------------------------------ | ------------------------------------------------------ |
+| **Centralized SSL Management** | Single point for certificate renewal and configuration |
+| **Application Isolation**      | Services don't need to handle SSL/TLS directly         |
+| **Path-Based Routing**         | Route traffic to different services based on URL paths |
+| **Performance Optimization**   | SSL session caching and optimized TLS settings         |
+| **Security Headers**           | Easily add security headers like HSTS, CSP, etc.       |
+
+### 5.3 Implementation Steps
+
+#### 5.3.1 Create SSL Certificates
+
+For development, self-signed certificates can be used:
+
+```bash
+# Generate self-signed certificates
+mkdir -p infrastructure/docker/configs/nginx/ssl
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout infrastructure/docker/configs/nginx/ssl/nginx-selfsigned.key \
+  -out infrastructure/docker/configs/nginx/ssl/nginx-selfsigned.crt \
+  -subj "/C=US/ST=State/L=City/O=Organization/CN=tradeport.local"
+```
+
+For production, use Let's Encrypt certificates:
+
+```bash
+# Install certbot on the host machine (handled by Ansible)
+sudo apt update
+sudo apt install -y certbot python3-certbot-nginx
+```
+
+#### 5.3.2 NGINX Configuration Template
+
+Create a template for NGINX configuration with SSL:
+
+```bash
+# Create NGINX config directory
+mkdir -p infrastructure/docker/configs/nginx/conf.d
+
+# Create NGINX SSL configuration
+cat > infrastructure/docker/configs/nginx/conf.d/default.conf.template << 'EOF'
+server {
+    listen 80;
+    server_name ${NGINX_HOST};
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name ${NGINX_HOST};
+
+    ssl_certificate /etc/nginx/ssl/fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/privkey.pem;
+
+    # SSL settings
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # Security headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-Frame-Options DENY;
+    add_header X-XSS-Protection "1; mode=block";
+
+    # Frontend service
+    location / {
+        proxy_pass http://frontend:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Identity service API
+    location /api/identity/ {
+        proxy_pass http://identityservice:7237/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Product service API
+    location /api/products/ {
+        proxy_pass http://productservice:3016/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Order service API
+    location /api/orders/ {
+        proxy_pass http://orderservice:3017/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+```
+
+#### 5.3.3 Docker Compose Integration
+
+Update the Docker Compose template to include NGINX with SSL:
+
+```bash
+# Create Docker Compose template for HTTPS
+cat > infrastructure/docker/compose/dev/docker-compose.yml.template << 'EOF'
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./configs/nginx/conf.d:/etc/nginx/conf.d
+      - ./configs/nginx/ssl:/etc/nginx/ssl
+      - ./configs/nginx/certbot/www:/var/www/certbot
+      - ./configs/nginx/certbot/conf:/etc/letsencrypt
+    depends_on:
+      - frontend
+      - identityservice
+      - productservice
+      - orderservice
+    networks:
+      - tradeport_network
+
+  mssql:
+    image: ${DOCKER_REGISTRY}/tradeport-backend-mssql:${IMAGE_TAG}
+    environment:
+      - SA_PASSWORD=${DB_PASSWORD}
+      - ACCEPT_EULA=Y
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    networks:
+      - tradeport_network
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P ${DB_PASSWORD} -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    image: ${DOCKER_REGISTRY}/tradeport-frontend:${IMAGE_TAG}
+    environment:
+      - PORT=3001
+      - NODE_ENV=${NODE_ENV}
+      - API_URL=https://${DOMAIN_NAME}/api
+    depends_on:
+      - identityservice
+      - productservice
+      - orderservice
+    networks:
+      - tradeport_network
+
+  identityservice:
+    image: ${DOCKER_REGISTRY}/tradeport-backend-identity:${IMAGE_TAG}
+    environment:
+      - ASPNETCORE_URLS=http://+:7237
+      - ASPNETCORE_ENVIRONMENT=${ASPNET_ENV}
+      - DB_USER=sa
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_SERVER=mssql
+      - DB_DATABASE=tradeportdb
+    depends_on:
+      mssql:
+        condition: service_healthy
+    networks:
+      - tradeport_network
+
+  productservice:
+    image: ${DOCKER_REGISTRY}/tradeport-backend-productservice:${IMAGE_TAG}
+    environment:
+      - ASPNETCORE_URLS=http://+:3016
+      - ASPNETCORE_ENVIRONMENT=${ASPNET_ENV}
+      - DB_USER=sa
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_SERVER=mssql
+      - DB_DATABASE=tradeportdb
+    depends_on:
+      mssql:
+        condition: service_healthy
+    networks:
+      - tradeport_network
+
+  orderservice:
+    image: ${DOCKER_REGISTRY}/tradeport-backend-orderservice:${IMAGE_TAG}
+    environment:
+      - ASPNETCORE_URLS=http://+:3017
+      - ASPNETCORE_ENVIRONMENT=${ASPNET_ENV}
+      - DB_USER=sa
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_SERVER=mssql
+      - DB_DATABASE=tradeportdb
+    depends_on:
+      mssql:
+        condition: service_healthy
+    networks:
+      - tradeport_network
+
+networks:
+  tradeport_network:
+    driver: bridge
+
+volumes:
+  mssql-data:
+EOF
+```
+
+#### 5.3.4 Ansible Role for SSL Configuration
+
+Create an Ansible role to automate the SSL setup:
+
+```bash
+# Create Ansible role for SSL configuration
+mkdir -p infrastructure/ansible/roles/ssl/tasks
+
+cat > infrastructure/ansible/roles/ssl/tasks/main.yml << 'EOF'
+---
+- name: Ensure SSL directory exists
+  file:
+    path: /opt/tradeport/ssl
+    state: directory
+    mode: '0755'
+
+- name: Check if production SSL is configured
+  stat:
+    path: /etc/letsencrypt/live/{{ domain_name }}/fullchain.pem
+  register: ssl_cert
+
+- name: Generate self-signed certificate (if needed for development)
+  shell: |
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+      -keyout /opt/tradeport/ssl/nginx-selfsigned.key \
+      -out /opt/tradeport/ssl/nginx-selfsigned.crt \
+      -subj "/C=US/ST=State/L=City/O=Organization/CN={{ domain_name }}"
+  when: not ssl_cert.stat.exists and env == "dev"
+
+- name: Configure NGINX to use self-signed certificates
+  template:
+    src: nginx-self-signed.conf.j2
+    dest: /opt/tradeport/configs/nginx/conf.d/default.conf
+  when: not ssl_cert.stat.exists and env == "dev"
+
+- name: Setup Let's Encrypt certificates (for production)
+  block:
+    - name: Install certbot
+      apt:
+        name:
+          - certbot
+          - python3-certbot-nginx
+        state: present
+
+    - name: Obtain SSL certificate
+      command: >
+        certbot certonly --standalone
+        -d {{ domain_name }}
+        --non-interactive
+        --agree-tos
+        --email {{ admin_email }}
+        --http-01-port=80
+      args:
+        creates: /etc/letsencrypt/live/{{ domain_name }}/fullchain.pem
+
+    - name: Copy certificates to NGINX directory
+      copy:
+        src: "/etc/letsencrypt/live/{{ domain_name }}/"
+        dest: "/opt/tradeport/ssl/"
+        remote_src: yes
+
+    - name: Configure NGINX to use Let's Encrypt certificates
+      template:
+        src: nginx-letsencrypt.conf.j2
+        dest: /opt/tradeport/configs/nginx/conf.d/default.conf
+
+    - name: Set up certificate renewal cron job
+      cron:
+        name: "Renew Let's Encrypt certificates"
+        job: "certbot renew --quiet --no-self-upgrade"
+        minute: "0"
+        hour: "3"
+        weekday: "1"
+  when: env == "prod" or env == "staging"
+EOF
+```
+
+### 5.4 HTTPS Workflow
+
+The workflow for implementing HTTPS in our deployment is:
+
+```plantuml
+@startuml HTTPS Implementation Workflow
+title HTTPS Implementation for Tradeport
+
+start
+:Provision infrastructure with Terraform;
+
+if (Production environment?) then (yes)
+  :Install certbot;
+  :Obtain Let's Encrypt certificate;
+  :Configure certificate auto-renewal;
+else (no)
+  :Generate self-signed certificate;
+endif
+
+:Configure NGINX with SSL certificates;
+:Set up NGINX as reverse proxy;
+:Map routes to Docker services;
+:Configure security headers;
+:Start containers with Docker Compose;
+:Validate HTTPS connections;
+stop
+@enduml
+```
+
+### 5.5 Testing HTTPS Configuration
+
+After deploying, verify your HTTPS configuration:
+
+```bash
+# SSL Labs test (for production domains)
+curl -s https://www.ssllabs.com/ssltest/analyze.html?d=your-domain.com
+
+# Locally check certificate information
+echo | openssl s_client -showcerts -servername your-domain.com -connect your-domain.com:443
+
+# Test API endpoints using HTTPS
+curl -k https://your-domain.com/api/identity/healthcheck
+```
+
+### 5.6 Common HTTPS Issues and Solutions
+
+| Issue                           | Solution                                                       |
+| ------------------------------- | -------------------------------------------------------------- |
+| **Certificate renewal failure** | Set up a monitoring alert for certificate expiration           |
+| **Mixed content warnings**      | Ensure all resources (JS, CSS, images) are loaded via HTTPS    |
+| **Invalid certificate errors**  | Verify domain name matches certificate's Common Name or SAN    |
+| **HTTPS performance issues**    | Enable HTTP/2, configure SSL session caching, optimize ciphers |
+| **Incorrect proxy headers**     | Ensure `X-Forwarded-Proto` and other headers are set correctly |
+
+By implementing this approach, our Docker containers don't need to handle HTTPS directly. Instead, NGINX serves as a secure front-end that handles all TLS/SSL traffic, routing the decrypted requests to the appropriate containers.
