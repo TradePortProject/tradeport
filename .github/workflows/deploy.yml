@@ -24,10 +24,16 @@ jobs:
       run: |
         terraform init
 
-    - name: Apply Terraform
+    - name: Plan Terraform Changes
       run: |
-        terraform apply -auto-approve
-
+        terraform plan -out=tfplan
+        terraform show -json tfplan > tfplan.json
+    
+    - name: Apply Terraform
+      if: success()  # Only apply if the plan succeeds
+      run: |
+        terraform apply -auto-approve tfplan
+    
     - name: Retrieve Droplet IP
       run: |
         DROPLET_IP=$(terraform output -raw droplet_ip)
