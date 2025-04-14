@@ -24,7 +24,10 @@ jobs:
       run: terraform init
 
     - name: Apply Terraform
-      run: terraform apply -auto-approve
+      run: |
+        cd terraform  # Navigate to Terraform folder
+        terraform init
+        terraform apply -auto-approve
 
     - name: Retrieve Droplet IP
       run: |
