@@ -1,0 +1,71 @@
+services:
+  mssql: 
+    extends:
+      file: ../tradeport-backend-mssql/docker-compose.yml
+      service: mssql
+    networks:
+      - my_network
+
+  zookeeper:
+    extends:
+      file: ../tradeport-kafka/docker-compose.yml
+      service: zookeeper
+    networks:
+      - my_network      
+      
+  kafka:
+    extends:
+      file: ../tradeport-kafka/docker-compose.yml
+      service: kafka
+    networks:
+      - my_network
+      
+  frontend:
+    extends:
+      file: ../tradeport-frontend/docker-compose.yml
+      service: frontend
+    networks:
+      - my_network
+
+  productservice:
+    extends:
+      file: ../tradeport-backend-productservice/docker-compose.yml
+      service: productservice
+    networks:
+      - my_network
+      
+  orderservice:
+    extends:
+      file: ../tradeport-backend-orderservice/docker-compose.yml
+      service: orderservice
+    networks:
+      - my_network      
+
+  identityservice:
+    extends:
+      file: ../tradeport-backend-identity/docker-compose.yml
+      service: identityservice
+    networks:
+      - my_network
+      
+  notificationservice:
+    extends:
+      file: ../tradeport-backend-notificationservice/docker-compose.yml
+      service: notificationservice
+    env_file:
+      - ../tradeport-backend-notificationservice/.env
+    networks:
+      - my_network
+
+  dbwriterservice:
+    extends:
+      file: ../tradeport-backend-dbwriterservice/docker-compose.yml
+      service: dbwriterservice
+    env_file:
+      - ../tradeport-backend-dbwriterservice/.env
+    networks:
+      - my_network      
+
+networks:
+  my_network:
+    external: true
