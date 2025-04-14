@@ -31,6 +31,9 @@ jobs:
       run: |
         terraform plan -out=tfplan
         terraform show -json tfplan > tfplan.json
+        
+    - name: Check Terraform Files
+      run: ls -l terraform/
     
     - name: Apply Terraform
       if: success()  # Only apply if the plan succeeds
