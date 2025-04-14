@@ -1,7 +1,7 @@
 name: Deploy to DigitalOcean
 
 on:
-  workflow_dispatch: # Allows manual triggering from GitHub UI
+  workflow_dispatch: # Allows manual triggering
 
 jobs:
   deploy:
@@ -10,8 +10,8 @@ jobs:
     env:
       DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-      DOCKER_HUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
     steps:
     - name: Checkout repository
@@ -21,17 +21,17 @@ jobs:
       uses: hashicorp/setup-terraform@v2
 
     - name: Initialize Terraform
-      run: terraform init
+      run: |
+        terraform init
 
     - name: Apply Terraform
       run: |
-        cd terraform  # Navigate to Terraform folder
-        terraform init
         terraform apply -auto-approve
 
     - name: Retrieve Droplet IP
       run: |
-        echo "DROPLET_IP=$(terraform output droplet_ip)" >> $GITHUB_ENV
+        DROPLET_IP=$(terraform output -raw droplet_ip)
+        echo "DROPLET_IP=$DROPLET_IP" >> $GITHUB_ENV
 
     - name: Configure SSH Access
       run: |
@@ -42,7 +42,7 @@ jobs:
     - name: Deploy Containers to DigitalOcean
       run: |
         ssh -o StrictHostKeyChecking=no root@$DROPLET_IP << EOF
-          docker login -u "$DOCKERHUB_USERNAME" -p "$DOCKER_PASSWORD"
+          docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_PASSWORD"
           docker network create my_network || true
 
           docker pull prabhulalithakrishnan/mssql:latest
