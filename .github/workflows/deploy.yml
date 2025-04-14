@@ -45,10 +45,8 @@ jobs:
           docker pull prabhulalithakrishnan/mssql:latest
           docker pull prabhulalithakrishnan/frontend:latest
           docker pull prabhulalithakrishnan/productservice:latest
-          docker pull prabhulalithakrishnan/identityservice:latest
 
           docker run -d --name mssql --network=my_network prabhulalithakrishnan/mssql
           docker run -d --name frontend --network=my_network prabhulalithakrishnan/frontend
           docker run -d --name productservice --network=my_network prabhulalithakrishnan/productservice
-          docker run -d --name identityservice --network=my_network prabhulalithakrishnan/identityservice
         EOF
