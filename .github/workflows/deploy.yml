@@ -1,7 +1,7 @@
 name: Deploy to DigitalOcean
 
 on:
-  workflow_dispatch: # Allows manual triggering
+  workflow_dispatch: 
 
 jobs:
   deploy:
@@ -17,13 +17,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Clean Workspace
-      run: |
-        echo "Cleaning workspace..."
-        rm -rf *
-        git checkout -- .
-
-    - name: Verify Terraform Files (After Clean)
+    - name: Verify Terraform Files
       run: |
         echo "Listing files in terraform directory:"
         ls -l terraform/
@@ -33,7 +27,7 @@ jobs:
       uses: hashicorp/setup-terraform@v2
 
     - name: Initialize Terraform
-      run: terraform init
+      run: terraform init -upgrade
       working-directory: terraform
 
     - name: Check Terraform Files
@@ -52,6 +46,7 @@ jobs:
     - name: Retrieve Droplet IP
       run: |
         DROPLET_IP=$(terraform output -raw droplet_ip)
+        echo "Droplet IP: $DROPLET_IP"
         echo "DROPLET_IP=$DROPLET_IP" >> $GITHUB_ENV
       working-directory: terraform
 
@@ -60,6 +55,7 @@ jobs:
         mkdir -p ~/.ssh
         echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H $DROPLET_IP >> ~/.ssh/known_hosts
 
     - name: Deploy Containers to DigitalOcean
       run: |
@@ -74,4 +70,6 @@ jobs:
           docker run -d --name mssql --network=my_network prabhulalithakrishnan/mssql
           docker run -d --name frontend --network=my_network prabhulalithakrishnan/frontend
           docker run -d --name productservice --network=my_network prabhulalithakrishnan/productservice
+
+          docker ps -a
         EOF
