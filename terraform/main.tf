@@ -1,8 +1,8 @@
 terraform {
   required_providers {
     digitalocean = {
-      source = "digitalocean/digitalocean"
-      version = "~> 3.0" # Specify a version constraint (optional but recommended)
+      source  = "digitalocean/digitalocean"
+      version = "~> 3.0" # Ensure this is the correct version you want
     }
   }
 }
