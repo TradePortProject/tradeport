@@ -25,21 +25,26 @@ jobs:
 
     - name: Initialize Terraform
       run: terraform init
+      working-directory: terraform # Specify the working directory
 
     - name: Check Terraform Files
-      run: ls -l terraform/
+      run: ls -l
+      working-directory: terraform # Specify the working directory
 
     - name: Plan Terraform
       run: terraform plan -out=tfplan
+      working-directory: terraform # Specify the working directory
 
     - name: Apply Terraform
       if: success() # Only apply if the plan succeeds
       run: terraform apply -auto-approve tfplan
+      working-directory: terraform # Specify the working directory
 
     - name: Retrieve Droplet IP
       run: |
         DROPLET_IP=$(terraform output -raw droplet_ip)
         echo "DROPLET_IP=$DROPLET_IP" >> $GITHUB_ENV
+      working-directory: terraform # Specify the working directory
 
     - name: Configure SSH Access
       run: |
