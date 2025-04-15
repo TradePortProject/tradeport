@@ -14,9 +14,9 @@ jobs:
       DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
     steps:
-    - name: Checkout repository 1
+    - name: Checkout repository
       uses: actions/checkout@v3
-      
+
     - name: Check Repository Files
       run: ls -R
 
@@ -24,17 +24,18 @@ jobs:
       uses: hashicorp/setup-terraform@v2
 
     - name: Initialize Terraform
-      run: |
-        terraform init
-      
+      run: terraform init
+
     - name: Check Terraform Files
       run: ls -l terraform/
-    
+
+    - name: Plan Terraform
+      run: terraform plan -out=tfplan
+
     - name: Apply Terraform
-      if: success()  # Only apply if the plan succeeds
-      run: |
-        terraform apply -auto-approve tfplan
-    
+      if: success() # Only apply if the plan succeeds
+      run: terraform apply -auto-approve tfplan
+
     - name: Retrieve Droplet IP
       run: |
         DROPLET_IP=$(terraform output -raw droplet_ip)
