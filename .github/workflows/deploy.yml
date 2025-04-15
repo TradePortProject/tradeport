@@ -15,7 +15,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v2
 
     - name: Clean Workspace
       run: |
@@ -30,7 +30,7 @@ jobs:
       working-directory: terraform
 
     - name: Set up Terraform
-      uses: hashicorp/setup-terraform@v3
+      uses: hashicorp/setup-terraform@v2
 
     - name: Initialize Terraform
       run: terraform init
