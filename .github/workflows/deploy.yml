@@ -24,7 +24,7 @@ jobs:
       working-directory: terraform
 
     - name: Plan Terraform
-      run: terraform plan -out=tfplan
+      run: terraform plan -out=tfplan -parallelism=5
       working-directory: terraform
 
     - name: Apply Terraform
