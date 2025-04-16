@@ -22,7 +22,7 @@ provider "digitalocean" {
 }
 
 resource "digitalocean_droplet" "app_server" {
-  name       = "tradeport-server"
+  name       = "tradeport-server-test"
   region     = "sgp1"
   size       = "s-2vcpu-4gb"
   image      = "ubuntu-22-04-x64"

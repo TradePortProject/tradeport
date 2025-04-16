@@ -4,34 +4,23 @@ on:
   workflow_dispatch: 
 
 jobs:
-  deploy:
+  terraform:
     runs-on: ubuntu-latest
-
     env:
       DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
-      DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Verify Terraform Files
-      run: |
-        echo "Listing files in terraform directory:"
-        ls -l terraform/
-      working-directory: terraform
-
-    - name: Set up Terraform
+    - name: Install Terraform
       uses: hashicorp/setup-terraform@v2
 
     - name: Initialize Terraform
+      env:
+        TF_VAR_digitalocean_token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+        TF_VAR_ssh_fingerprint: ${{ secrets.SSH_FINGERPRINT }}
       run: terraform init -upgrade
-      working-directory: terraform
-
-    - name: Check Terraform Files
-      run: ls -l
       working-directory: terraform
 
     - name: Plan Terraform
@@ -39,7 +28,7 @@ jobs:
       working-directory: terraform
 
     - name: Apply Terraform
-      if: success() # Only apply if the plan succeeds
+      if: success()
       run: terraform apply -auto-approve tfplan
       working-directory: terraform
 
@@ -50,6 +39,20 @@ jobs:
         echo "DROPLET_IP=$DROPLET_IP" >> $GITHUB_ENV
       working-directory: terraform
 
+  deploy:
+    needs: terraform
+    runs-on: ubuntu-latest
+    env:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+    steps:
+    - name: Install Docker
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y docker.io
+
     - name: Configure SSH Access
       run: |
         mkdir -p ~/.ssh
@@ -57,19 +60,14 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H $DROPLET_IP >> ~/.ssh/known_hosts
 
-    - name: Deploy Containers to DigitalOcean
+    - name: Deploy Containers to DigitalOcean in One Docker Instance
       run: |
         ssh -o StrictHostKeyChecking=no root@$DROPLET_IP << EOF
           docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_PASSWORD"
-          docker network create my_network || true
 
-          docker pull prabhulalithakrishnan/mssql:latest
-          docker pull prabhulalithakrishnan/frontend:latest
-          docker pull prabhulalithakrishnan/productservice:latest
+          docker pull prabhulalithakrishnan/tradeport-backend-mssql:latest
 
-          docker run -d --name mssql --network=my_network prabhulalithakrishnan/mssql
-          docker run -d --name frontend --network=my_network prabhulalithakrishnan/frontend
-          docker run -d --name productservice --network=my_network prabhulalithakrishnan/productservice
+          docker run -d -p 1433:1433 --name mssql --network=my_network prabhulalithakrishnan/tradeport-backend-mssql:latest
 
           docker ps -a
         EOF
