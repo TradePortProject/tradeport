@@ -1,13 +1,13 @@
 name: Deploy to DigitalOcean
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   terraform:
     runs-on: ubuntu-latest
     env:
-      DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      TF_VAR_digitalocean_token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
 
     steps:
     - name: Checkout repository
@@ -46,18 +46,22 @@ jobs:
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
       DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
+      SA_PASSWORD: ${{ secrets.SA_PASSWORD }}
 
     steps:
-    - name: Install Docker
+    - name: Install Docker and Start Service
       run: |
         sudo apt-get update
         sudo apt-get install -y docker.io
+        sudo systemctl start docker
+        sudo systemctl enable docker
 
     - name: Configure SSH Access
       run: |
         mkdir -p ~/.ssh
         echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
+        chmod 700 ~/.ssh
         ssh-keyscan -H $DROPLET_IP >> ~/.ssh/known_hosts
 
     - name: Deploy Containers to DigitalOcean in One Docker Instance
@@ -65,9 +69,16 @@ jobs:
         ssh -o StrictHostKeyChecking=no root@$DROPLET_IP << EOF
           docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_PASSWORD"
 
+          docker network create my_network || true
+
           docker pull prabhulalithakrishnan/tradeport-backend-mssql:latest
 
-          docker run -d -p 1433:1433 --name mssql --network=my_network prabhulalithakrishnan/tradeport-backend-mssql:latest
+          docker run -d -p 1433:1433 \
+            -e SA_PASSWORD="$SA_PASSWORD" \
+            --name mssql \
+            --network=my_network \
+            prabhulalithakrishnan/tradeport-backend-mssql:latest
 
           docker ps -a
         EOF
+
