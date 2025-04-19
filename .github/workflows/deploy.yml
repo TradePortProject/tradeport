@@ -8,13 +8,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TF_VAR_digitalocean_token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-      TF_VAR_ssh_fingerprint: ${{ secrets.SSH_FINGERPRINT }}
 
     steps:
-
-      - name: Debug SSH Fingerprint
+      - name: Debug SSH Fingerprint Secret
         run: echo "SSH_FINGERPRINT=${{ secrets.SSH_FINGERPRINT }}"
-    
+
       - name: Checkout repository
         uses: actions/checkout@v2
 
@@ -27,7 +25,7 @@ jobs:
 
       - name: Plan Terraform
         id: plan
-        run: terraform plan -out=tfplan -parallelism=5
+        run: terraform plan -out=tfplan -parallelism=5 -var="ssh_fingerprint=${{ secrets.SSH_FINGERPRINT }}"
         working-directory: terraform
 
       - name: Check for Existing Droplet IP
@@ -44,7 +42,7 @@ jobs:
 
       - name: Apply Terraform
         if: env.EXISTING_DROPLET == 'false' && steps.plan.outcome != 'skipped'
-        run: terraform apply -auto-approve tfplan
+        run: terraform apply -auto-approve tfplan -var="ssh_fingerprint=${{ secrets.SSH_FINGERPRINT }}"
         working-directory: terraform
 
       - name: Get Droplet IP
@@ -66,7 +64,7 @@ jobs:
       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
       DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
       SA_PASSWORD: ${{ secrets.SA_PASSWORD }}
-      DROPLET_IP: 139.59.223.169
+      DROPLET_IP: ${{ needs.terraform.outputs.get_ip.outputs.droplet_ip }}
 
     steps:
       - name: Install Docker and Start Service
@@ -83,6 +81,7 @@ jobs:
 
       - name: Deploy Containers to DigitalOcean
         run: |
+          echo "Connecting to Droplet at $DROPLET_IP..."
           ssh -o StrictHostKeyChecking=no root@"$DROPLET_IP" << EOF
             echo "Logging into Docker..."
             docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_PASSWORD"
@@ -101,5 +100,6 @@ jobs:
               --mount type=bind,source=/mnt/volume_sgp1_01,target=/mnt/volume_sgp1_01 \
               prabhulalithakrishnan/tradeport-backend-mssql:latest
 
+            echo "Docker container status:"
             docker ps -a
           EOF
