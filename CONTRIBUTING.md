@@ -1,8 +1,8 @@
-# 🌟 Contributing Guidelines
+# Contributing Guidelines
 
 Thank you for considering contributing to this project! To ensure a smooth and effective collaboration, please follow the guidelines below.
 
-## 🚀 How to Contribute
+## How to Contribute
 
 | Step | Action                                                                                                                                              |
 | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -11,34 +11,28 @@ Thank you for considering contributing to this project! To ensure a smooth and e
 | 3.   | **Write clear commit messages** following our [Commit Message Guidelines](#-commit-message-guidelines).                                             |
 | 4.   | **Open a Pull Request (PR)**:<br>Ensure your branch is updated with the `main` branch. Provide a clear description and link the related JIRA issue. |
 
-## 🧑‍💻 Code Style
-
+## Code Style
 - Follow the project's existing **linting rules** and formatting standards.
 - Maintain consistency in **naming conventions**, **file structures**, and **code organization**.
 - Use TypeScript interfaces and types where applicable.
 
-## 🐞 Reporting Issues
-
+## Reporting Issues
 - Check the existing issues before raising a new one.
 - When reporting, please include:
   - A **clear title**
   - Steps to **reproduce the issue**
   - Screenshots or logs, if relevant
 
-## 📝 Commit Message Guidelines
-
+## Commit Message Guidelines
 We follow a **JIRA-integrated commit format** to ensure traceability and consistency.
 
-### 🔐 Format
-
+### Format
 ```
-
 SCRUM-XX-TYPE: Title Case Summary
 
 Optional longer description.
 
 Closes SCRUM-XX
-
 ```
 
 | Component       | Description                                                                  |
@@ -49,7 +43,7 @@ Closes SCRUM-XX
 | `Body` (opt.)   | Provide additional context or rationale                                      |
 | `Footer` (opt.) | `Closes SCRUM-XX` (optional but useful for automation)                       |
 
-### 📦 Commit Types
+### Commit Types
 
 | Type       | Description                                    |
 | ---------- | ---------------------------------------------- |
@@ -61,49 +55,35 @@ Closes SCRUM-XX
 | `TEST`     | Adding or updating tests                       |
 | `CHORE`    | Maintenance tasks, dependency updates, etc.    |
 
-### ✅ Examples
-
-#### ✨ Feature Addition
-
+### Examples
+#### Feature Addition
 ```
-
 SCRUM-42-FEAT: Add Retailer Registration Page
 
 Implemented form and validation logic for retailer onboarding.
 Closes SCRUM-42
-
 ```
 
 #### 🐛 Bug Fix
-
 ```
-
 SCRUM-08-FIX: Handle Empty Cart Edge Case
 
 Prevented cart crash when product list is empty. Added unit tests.
-
 ```
 
-#### 📄 Documentation Update
-
+#### Documentation Update
 ```
-
 SCRUM-19-DOCS: Update API Usage in README
 
 Added examples for auth token usage in API calls.
-
 ```
 
-#### 🧹 Chore
-
+#### Chore
 ```
-
 SCRUM-33-CHORE: Upgrade React and Tailwind Dependencies
 
 ```
-
-## 📢 Git Tips
-
+## Git Tips
 Use this CLI-friendly command:
 
 ```bash
@@ -111,12 +91,11 @@ git commit -m "SCRUM-XX-TYPE: Title Case Summary" -m "Optional detailed descript
 ```
 
 For example:
-
 ```bash
 git commit -m "SCRUM-07-FIX: Resolve Login Timeout Issue" -m "Session expired due to inactive refresh token. Added middleware to renew tokens."
 ```
 
-## 🧪 Before Submitting a Pull Request
+## Before Submitting a Pull Request
 
 - [ ] Your branch is updated with `main`
 - [ ] Code is linted (`npm run lint`)
