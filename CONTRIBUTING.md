@@ -64,7 +64,7 @@ Implemented form and validation logic for retailer onboarding.
 Closes SCRUM-42
 ```
 
-#### 🐛 Bug Fix
+#### Bug Fix
 ```
 SCRUM-08-FIX: Handle Empty Cart Edge Case
 
