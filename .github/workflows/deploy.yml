@@ -27,16 +27,39 @@ jobs:
       run: terraform plan -out=tfplan -parallelism=5
       working-directory: terraform
 
-    - name: Apply Terraform
-      if: success()
-      run: terraform apply -auto-approve tfplan
+    - name: Apply Terraform (Avoid Duplicate Droplets)
+      run: |
+        EXISTING_DROPLET_IP=$(terraform output -raw droplet_ip 2>/dev/null || echo "")
+
+        if [ -z "$EXISTING_DROPLET_IP" ]; then
+          echo "No existing droplet found, applying Terraform..."
+          terraform apply -auto-approve tfplan
+        else
+          echo "Droplet already exists: $EXISTING_DROPLET_IP"
+        fi
       working-directory: terraform
 
     - name: Retrieve Droplet IP
       run: |
-        DROPLET_IP=$(terraform output -raw droplet_ip)
+        EXISTING_DROPLET_IP=$(terraform output -raw droplet_ip 2>/dev/null || echo "")
+
+        if [ -z "$EXISTING_DROPLET_IP" ]; then
+          echo "Fetching new Droplet IP..."
+          DROPLET_IP=$(terraform output -raw droplet_ip)
+        else
+          echo "Using existing Droplet IP: $EXISTING_DROPLET_IP"
+          DROPLET_IP=$EXISTING_DROPLET_IP
+        fi
+
         echo "Droplet IP: $DROPLET_IP"
         echo "DROPLET_IP=$DROPLET_IP" >> $GITHUB_ENV
+      working-directory: terraform
+
+    - name: Retrieve Volume Name
+      run: |
+        VOLUME_NAME=$(terraform output -raw volume_name)
+        echo "VOLUME_NAME: $VOLUME_NAME"
+        echo "VOLUME_NAME=$VOLUME_NAME" >> $GITHUB_ENV
       working-directory: terraform
 
   deploy:
@@ -64,21 +87,31 @@ jobs:
         chmod 700 ~/.ssh
         ssh-keyscan -H $DROPLET_IP >> ~/.ssh/known_hosts
 
+        ls -l ~/.ssh/id_rsa # Verify SSH key permissions
+      working-directory: terraform
+
+
     - name: Deploy Containers to DigitalOcean in One Docker Instance
       run: |
         ssh -o StrictHostKeyChecking=no root@$DROPLET_IP << EOF
-          docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_PASSWORD"
+          echo "Logging into Docker..."
+          if ! docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_PASSWORD"; then
+            echo "Docker login failed! Check credentials or Docker Hub status."
+            exit 1
+          fi
 
           docker network create my_network || true
 
+          echo "Pulling MSSQL image..."
           docker pull prabhulalithakrishnan/tradeport-backend-mssql:latest
 
+          echo "Running MSSQL container..."
           docker run -d -p 1433:1433 \
             -e SA_PASSWORD="$SA_PASSWORD" \
             --name mssql \
             --network=my_network \
+            --mount type=bind,source=/mnt/volume_sgp1_01,target=/mnt/volume_sgp1_01 \
             prabhulalithakrishnan/tradeport-backend-mssql:latest
 
           docker ps -a
         EOF
-
