@@ -24,10 +24,12 @@ tradeport-project/
 Build and Start the Services:
 
 ```bash
-git clone https://github.com/e1509819/tradeport-frontend.git
-git clone https://github.com/e1509819/tradeport-backend-productservice.git
-git clone https://github.com/e1509819/tradeport-backend-mssql.git
-git clone https://github.com/e1509819/tradeport.git
+git clone git@github.com:TradePortProject/tradeport.git
+git clone git@github.com:TradePortProject/tradeport-frontend.git
+git clone git@github.com:TradePortProject/tradeport-backend-productservice.git
+git clone git@github.com:TradePortProject/tradeport-backend-orderservice.git
+git clone git@github.com:TradePortProject/tradeport-backend-identity.git
+git clone git@github.com:TradePortProject/tradeport-backend-mssql.git
 ```
 
 ```bash
