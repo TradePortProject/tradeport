@@ -23,24 +23,9 @@ jobs:
         run: terraform init -upgrade
         working-directory: terraform
 
-      - name: Initialize Terraform 2
-        env:
-          TF_VAR_digitalocean_token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-          TF_VAR_ssh_fingerprint: ${{ secrets.SSH_FINGERPRINT }}
-        run: terraform init -upgrade
-        working-directory: terraform
-      
-
       - name: Plan Terraform
         id: plan
         run: terraform plan -out=tfplan -parallelism=5 -var="ssh_fingerprint=${{ secrets.SSH_FINGERPRINT }}"
-        working-directory: terraform
-
-      - name: Check for Existing Droplet IP
-        id: check_droplet
-        run: |
-          EXISTING_DROPLET_IP=$(terraform output -raw droplet_ip 2>/dev/null || echo "")
-          echo "EXISTING_DROPLET=$([[ -n "$EXISTING_DROPLET_IP" ]] && echo true || echo false)" >> $GITHUB_ENV
         working-directory: terraform
 
       - name: Show Plan
@@ -49,20 +34,17 @@ jobs:
         working-directory: terraform
 
       - name: Apply Terraform
-        if: env.EXISTING_DROPLET == 'false' && steps.plan.outcome != 'skipped'
         run: terraform apply -auto-approve tfplan -var="ssh_fingerprint=${{ secrets.SSH_FINGERPRINT }}"
         working-directory: terraform
 
       - name: Get Droplet IP
         id: get_ip
         run: |
-          DROPLET_IP=$(terraform output -raw droplet_ip 2>/dev/null)
-          if [[ -z "$DROPLET_IP" ]]; then
-            echo "Error: Droplet IP not found in Terraform state."
-            exit 1
-          fi
+          DROPLET_IP=$(terraform output -raw droplet_ip)
           echo "DROPLET_IP=$DROPLET_IP" >> $GITHUB_ENV
         working-directory: terraform
+        outputs:
+          droplet_ip: ${{ env.DROPLET_IP }}
 
   deploy:
     needs: terraform
