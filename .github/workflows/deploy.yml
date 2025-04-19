@@ -62,7 +62,7 @@ jobs:
       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
       DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
       SA_PASSWORD: ${{ secrets.SA_PASSWORD }}
-      DROPLET_IP: ${{ needs.terraform.outputs.droplet_ip }}
+      DROPLET_IP: 139.59.223.169
 
     steps:
       - name: Install Docker and Start Service
