@@ -55,13 +55,6 @@ jobs:
         echo "DROPLET_IP=$DROPLET_IP" >> $GITHUB_ENV
       working-directory: terraform
 
-    - name: Retrieve Volume Name
-      run: |
-        VOLUME_NAME=$(terraform output -raw volume_name)
-        echo "VOLUME_NAME: $VOLUME_NAME"
-        echo "VOLUME_NAME=$VOLUME_NAME" >> $GITHUB_ENV
-      working-directory: terraform
-
   deploy:
     needs: terraform
     runs-on: ubuntu-latest
