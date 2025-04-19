@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TF_VAR_digitalocean_token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-      TF_VAR_ssh_fingerprint: ${{ secrets.SSH_FINGERPRINT }} # Assuming you manage SSH keys via Terraform
+      TF_VAR_ssh_fingerprint: ${{ secrets.SSH_FINGERPRINT }}
 
     steps:
       - name: Checkout repository
@@ -25,46 +25,34 @@ jobs:
         id: plan
         run: terraform plan -out=tfplan -parallelism=5
         working-directory: terraform
-        continue-on-error: true # Allow apply job to proceed even if no changes
 
       - name: Check for Existing Droplet IP
         id: check_droplet
         run: |
           EXISTING_DROPLET_IP=$(terraform output -raw droplet_ip 2>/dev/null || echo "")
-          if [ -n "$EXISTING_DROPLET_IP" ]; then
-            echo "EXISTING_DROPLET=true" >> $GITHUB_ENV
-            echo "Existing Droplet IP found: $EXISTING_DROPLET_IP"
-          else
-            echo "EXISTING_DROPLET=false" >> $GITHUB_ENV
-            echo "No existing Droplet found."
-          fi
+          echo "EXISTING_DROPLET=$([[ -n "$EXISTING_DROPLET_IP" ]] && echo true || echo false)" >> $GITHUB_ENV
         working-directory: terraform
 
       - name: Show Plan
         if: steps.plan.outcome == 'failure'
-        run: echo "Terraform Plan Diff:" && terraform show -no-color tfplan
+        run: terraform show -no-color tfplan
         working-directory: terraform
 
       - name: Apply Terraform
         if: env.EXISTING_DROPLET == 'false' && steps.plan.outcome != 'skipped'
         run: terraform apply -auto-approve tfplan
         working-directory: terraform
-        continue-on-error: true # Allow subsequent steps even if apply fails (e.g., no changes)
 
       - name: Get Droplet IP
         id: get_ip
         run: |
           DROPLET_IP=$(terraform output -raw droplet_ip 2>/dev/null)
-          if [ -n "$DROPLET_IP" ]; then
-            echo "DROPLET_IP=$DROPLET_IP" >> $GITHUB_ENV
-            echo "Droplet IP: $DROPLET_IP"
-          else
-            echo "Warning: Droplet IP not found in Terraform state."
+          if [[ -z "$DROPLET_IP" ]]; then
+            echo "Error: Droplet IP not found in Terraform state."
             exit 1
           fi
+          echo "DROPLET_IP=$DROPLET_IP" >> $GITHUB_ENV
         working-directory: terraform
-        outputs:
-          droplet_ip: ${{ env.DROPLET_IP }}
 
   deploy:
     needs: terraform
@@ -74,47 +62,34 @@ jobs:
       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
       DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
       SA_PASSWORD: ${{ secrets.SA_PASSWORD }}
-      DROPLET_IP: ${{ needs.terraform.outputs.droplet_ip }} # Directly use output
+      DROPLET_IP: ${{ needs.terraform.outputs.droplet_ip }}
 
     steps:
       - name: Install Docker and Start Service
         run: |
-          sudo apt-get update
-          sudo apt-get install -y docker.io
-          sudo systemctl start docker
-          sudo systemctl enable docker
+          sudo apt-get update && sudo apt-get install -y docker.io
+          sudo systemctl start docker && sudo systemctl enable docker
 
       - name: Configure SSH Access
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          chmod 700 ~/.ssh
           ssh-keyscan -H "$DROPLET_IP" >> ~/.ssh/known_hosts
-          echo "SSH key configured and host added."
-          ls -l ~/.ssh/id_rsa # Verify SSH key permissions
 
       - name: Deploy Containers to DigitalOcean
         run: |
-          echo "Connecting to Droplet at $DROPLET_IP..."
           ssh -o StrictHostKeyChecking=no root@"$DROPLET_IP" << EOF
             echo "Logging into Docker..."
-            if ! docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_PASSWORD"; then
-              echo "Docker login failed! Check credentials or Docker Hub status."
-              exit 1
-            fi
+            docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_PASSWORD"
 
-            echo "Creating Docker network 'my_network' if it doesn't exist..."
+            echo "Creating Docker network..."
             docker network create my_network || true
 
-            echo "Pulling MSSQL image: prabhulalithakrishnan/tradeport-backend-mssql:latest"
+            echo "Deploying MSSQL container..."
             docker pull prabhulalithakrishnan/tradeport-backend-mssql:latest
-
-            echo "Stopping and removing existing MSSQL container (if any)..."
-            docker stop mssql 2>/dev/null || true
-            docker rm mssql 2>/dev/null || true
-
-            echo "Running MSSQL container..."
+            docker stop mssql || true
+            docker rm mssql || true
             docker run -d -p 1433:1433 \
               -e SA_PASSWORD="$SA_PASSWORD" \
               --name mssql \
@@ -122,7 +97,5 @@ jobs:
               --mount type=bind,source=/mnt/volume_sgp1_01,target=/mnt/volume_sgp1_01 \
               prabhulalithakrishnan/tradeport-backend-mssql:latest
 
-            echo "Docker container status:"
             docker ps -a
           EOF
-        working-directory: terraform
