@@ -11,6 +11,10 @@ jobs:
       TF_VAR_ssh_fingerprint: ${{ secrets.SSH_FINGERPRINT }}
 
     steps:
+
+      - name: Debug SSH Fingerprint
+        run: echo "SSH_FINGERPRINT=${{ secrets.SSH_FINGERPRINT }}"
+    
       - name: Checkout repository
         uses: actions/checkout@v2
 
