@@ -41,10 +41,10 @@ jobs:
         id: get_ip
         run: |
           DROPLET_IP=$(terraform output -raw droplet_ip)
-          echo "DROPLET_IP=$DROPLET_IP" >> $GITHUB_ENV
+          echo "DROPLET_IP=$DROPLET_IP" >> $GITHUB_OUTPUT
         working-directory: terraform
-        outputs:
-          droplet_ip: ${{ env.DROPLET_IP }}
+    outputs:
+      droplet_ip: ${{ steps.get_ip.outputs.DROPLET_IP }}
 
   deploy:
     needs: terraform
@@ -54,7 +54,7 @@ jobs:
       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
       DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
       SA_PASSWORD: ${{ secrets.SA_PASSWORD }}
-      DROPLET_IP: ${{ needs.terraform.outputs.get_ip.outputs.droplet_ip }}
+      DROPLET_IP: ${{ needs.terraform.outputs.droplet_ip }}
 
     steps:
       - name: Install Docker and Start Service
