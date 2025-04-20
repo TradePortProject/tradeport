@@ -1,0 +1,113 @@
+name: Productservice Deploy to DigitalOcean
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    env:
+      TF_VAR_digitalocean_token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      TF_VAR_ssh_fingerprint: ${{ secrets.SSH_FINGERPRINT }}
+      TF_LOG: DEBUG  # Enable Terraform debugging
+      TF_LOG_PATH: terraform-debug.log  # Save debug logs to a file
+
+    steps:
+      - name: Debug Secrets
+        run: |
+          echo "SSH_FINGERPRINT=${{ secrets.SSH_FINGERPRINT }}"
+          echo "DO_ACCESS_TOKEN=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}"
+
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Initialize Terraform (Debugging Enabled)
+        run: |
+          export TF_LOG=DEBUG
+          terraform init -upgrade | tee terraform-debug.log
+        working-directory: terraform
+
+      - name: Plan Terraform (Debugging Enabled)
+        id: plan
+        run: |
+          export TF_LOG=DEBUG
+          terraform plan -out=tfplan -parallelism=5 \
+            -var="do_token=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}" \
+            -var="ssh_fingerprint=${{ secrets.SSH_FINGERPRINT }}" | tee terraform-debug.log
+        working-directory: terraform
+
+      - name: Show Plan If Failure Occurs
+        if: steps.plan.outcome == 'failure'
+        run: terraform show -no-color tfplan
+        working-directory: terraform
+
+      - name: Apply Terraform (Corrected Command)
+        run: |
+          export TF_LOG=DEBUG
+          terraform apply -auto-approve "tfplan"
+        working-directory: terraform
+
+      - name: Get Droplet IP (Inspect Raw JSON Output)
+        id: get_ip_debug
+        run: |
+          terraform output -json droplet_ip
+        working-directory: terraform
+    outputs:
+      droplet_ip: ${{ steps.get_ip.outputs.DROPLET_IP }}
+
+  deploy:
+    needs: terraform
+    runs-on: ubuntu-latest
+    env:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+      DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_PASSWORD }}
+      SA_PASSWORD: ${{ secrets.SA_PASSWORD }}
+      DROPLET_IP: ${{ needs.terraform.outputs.droplet_ip || '159.223.94.41' }}
+
+    steps:
+      - name: Install Docker and Start Service
+        run: |
+          sudo apt-get update
+          sudo apt-get remove -y --purge containerd containerd.io docker docker-engine docker.io docker-ce
+          sudo apt-get autoremove -y
+          sudo apt-get clean
+          sudo apt-get update
+          sudo apt-get install -y docker.io
+          sudo systemctl start docker && sudo systemctl enable docker
+
+      - name: Configure SSH Access
+        run: |
+          echo "DROPLET_IP=$DROPLET_IP"
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "$DROPLET_IP" >> ~/.ssh/known_hosts
+
+      - name: Deploy Containers to DigitalOcean
+        run: |
+          echo "Connecting to Droplet at $DROPLET_IP..."
+          ssh -o StrictHostKeyChecking=no root@"$DROPLET_IP" << EOF
+            echo "Logging into Docker..."
+            docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_PASSWORD"
+
+            echo "Creating Docker network..."
+            docker network create my_network || true
+
+            echo "Deploying productservice container..."
+            docker pull prabhulalithakrishnan/tradeport-backend-productservice-productservice:latest
+            docker stop productservice || true
+            docker rm productservice || true
+            docker run -d -p 3016:3016 \
+              --name productservice \
+              --network=my_network \
+              --mount type=bind,source=/mnt/volume_sgp1_01,target=/mnt/volume_sgp1_01 \
+              prabhulalithakrishnan/tradeport-backend-productservice-productservice:latest   
+
+             
+            echo "Docker container status:"
+            docker ps -a
+          EOF
