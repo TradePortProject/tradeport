@@ -108,6 +108,37 @@ jobs:
               --mount type=bind,source=/mnt/volume_sgp1_01,target=/mnt/volume_sgp1_01 \
               prabhulalithakrishnan/tradeport-backend-mssql:latest
 
+            echo "Deploying Frontend container..."
+            docker pull prabhulalithakrishnan/tradeport-frontend:latest
+            docker stop frontend || true
+            docker rm frontend || true
+            docker run -d -p 3001:3001 \
+              --name frontend \
+              --network=my_network \
+              --mount type=bind,source=/mnt/volume_sgp1_01,target=/mnt/volume_sgp1_01 \
+              prabhulalithakrishnan/tradeport-frontend:latest              
+
+            echo "Deploying productservice container..."
+            docker pull prabhulalithakrishnan/tradeport-backend-productservice-productservice:latest
+            docker stop productservice || true
+            docker rm productservice || true
+            docker run -d -p 3016:3016 \
+              --name productservice \
+              --network=my_network \
+              --mount type=bind,source=/mnt/volume_sgp1_01,target=/mnt/volume_sgp1_01 \
+              prabhulalithakrishnan/tradeport-backend-productservice-productservice:latest   
+
+            echo "Deploying orderservice container..."
+            docker pull prabhulalithakrishnan/tradeport-backend-orderservice-orderservice:latest
+            docker stop orderservice || true
+            docker rm orderservice || true
+            docker run -d -p 3017:3017 \
+              --name orderservice \
+              --network=my_network \
+              --mount type=bind,source=/mnt/volume_sgp1_01,target=/mnt/volume_sgp1_01 \
+              prabhulalithakrishnan/tradeport-backend-orderservice-orderservice:latest   
+
+              
             echo "Docker container status:"
             docker ps -a
           EOF
