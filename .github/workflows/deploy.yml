@@ -44,21 +44,25 @@ jobs:
         run: terraform show -no-color tfplan
         working-directory: terraform
 
-      - name: Apply Terraform (Corrected Command)
+      - name: Apply Terraform (Debugging Enabled)
+        id: apply
         run: |
           export TF_LOG=DEBUG
-          terraform apply -auto-approve "tfplan"
+          terraform apply -auto-approve "tfplan" \
+            -var="do_token=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}" | tee terraform-apply.log
         working-directory: terraform
 
-      - name: Get Droplet IP (Inspect Raw JSON Output)
-        id: get_ip_debug
+      - name: Get Droplet IP
+        id: get_ip
         run: |
-          terraform output -json droplet_ip
+          DROPLET_IP=$(terraform output -raw droplet_ip)
+          echo "DROPLET_IP=$DROPLET_IP" >> $GITHUB_OUTPUT
         working-directory: terraform
+        continue-on-error: true # Allow the job to continue even if this step fails
     outputs:
       droplet_ip: ${{ steps.get_ip.outputs.DROPLET_IP }}
 
- deploy:
+  deploy:
     needs: terraform
     runs-on: ubuntu-latest
     env:
