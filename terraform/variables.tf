@@ -1,9 +1,9 @@
-variable "digitalocean_token" {
+variable "do_token" {
   description = "DigitalOcean API token"
   type        = string
 }
 
 variable "ssh_fingerprint" {
-  description = "SSH key fingerprint for authentication"
+  description = "SSH fingerprint for authentication"
   type        = string
 }
