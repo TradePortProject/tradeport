@@ -34,18 +34,18 @@ jobs:
         id: plan
         run: |
           export TF_LOG=DEBUG
-          terraform plan -out=tfplan -parallelism=5 -var="do_token=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}" -var="ssh_fingerprint=${{ secrets.SSH_FINGERPRINT }}" | tee terraform-debug.log
+          terraform plan -out=tfplan -parallelism=5 -var="do_token=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}" -var="ssh_fingerprint=${{ secrets.SSH_FINGERPRINT }}" 
         working-directory: terraform
 
       - name: Show Plan If Failure Occurs
         if: steps.plan.outcome == 'failure'
-        run: terraform show -no-color tfplan | tee terraform-debug.log
+        run: terraform show -no-color tfplan 
         working-directory: terraform
 
       - name: Apply Terraform (Debugging Enabled)
         run: |
           export TF_LOG=DEBUG
-          terraform apply -auto-approve tfplan -var="do_token=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}" -var="ssh_fingerprint=${{ secrets.SSH_FINGERPRINT }}" | tee terraform-debug.log
+          terraform apply -auto-approve tfplan -var="do_token=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}" -var="ssh_fingerprint=${{ secrets.SSH_FINGERPRINT }}" 
         working-directory: terraform
 
       - name: Get Droplet IP
