@@ -8,6 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TF_VAR_digitalocean_token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      TF_VAR_ssh_fingerprint: ${{ secrets.SSH_FINGERPRINT }}
 
     steps:
       - name: Debug SSH Fingerprint Secret
@@ -25,7 +26,7 @@ jobs:
 
       - name: Plan Terraform
         id: plan
-        run: terraform plan -out=tfplan -parallelism=5 -var="ssh_fingerprint=${{ secrets.SSH_FINGERPRINT }}"
+        run: terraform plan -out=tfplan -parallelism=5 -var="do_token=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}"
         working-directory: terraform
 
       - name: Show Plan
@@ -34,7 +35,7 @@ jobs:
         working-directory: terraform
 
       - name: Apply Terraform
-        run: terraform apply -auto-approve tfplan -var="ssh_fingerprint=${{ secrets.SSH_FINGERPRINT }}"
+        run: terraform apply -auto-approve tfplan -var="do_token=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}"
         working-directory: terraform
 
       - name: Get Droplet IP
