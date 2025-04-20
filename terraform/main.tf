@@ -15,6 +15,10 @@ terraform {
   }
 }
 
+provider "digitalocean" {
+  token = var.digitalocean_token
+}
+
 data "digitalocean_droplet" "app_server" {
   name = "tradeport-server"
 }
