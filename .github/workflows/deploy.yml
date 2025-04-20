@@ -71,7 +71,9 @@ jobs:
     steps:
       - name: Install Docker and Start Service
         run: |
-          sudo apt-get update && sudo apt-get install -y docker.io
+          sudo apt-get update
+          sudo apt-get remove -y containerd containerd.io
+          sudo apt-get install -y docker.io
           sudo systemctl start docker && sudo systemctl enable docker
 
       - name: Configure SSH Access
