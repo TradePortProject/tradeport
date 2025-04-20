@@ -15,8 +15,19 @@ terraform {
   }
 }
 
+# Declare the missing variables
+variable "do_token" {
+  description = "DigitalOcean API token"
+  type        = string
+}
+
+variable "ssh_fingerprint" {
+  description = "SSH fingerprint for authentication"
+  type        = string
+}
+
 provider "digitalocean" {
-  token = var.digitalocean_token
+  token = var.do_token
 }
 
 data "digitalocean_droplet" "app_server" {
