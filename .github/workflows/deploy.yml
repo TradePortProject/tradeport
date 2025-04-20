@@ -53,7 +53,7 @@ jobs:
       - name: Get Droplet IP
         id: get_ip
         run: |
-          DROPLET_IP=$(terraform output -raw droplet_ip)
+          DROPLET_IP=$(terraform output -json droplet_ip | jq -r '.value')
           echo "DROPLET_IP=$DROPLET_IP" >> $GITHUB_OUTPUT
         working-directory: terraform
     outputs:
