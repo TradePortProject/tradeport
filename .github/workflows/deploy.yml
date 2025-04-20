@@ -9,33 +9,43 @@ jobs:
     env:
       TF_VAR_digitalocean_token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
       TF_VAR_ssh_fingerprint: ${{ secrets.SSH_FINGERPRINT }}
+      TF_LOG: DEBUG  # Enable Terraform debugging
+      TF_LOG_PATH: terraform-debug.log  # Save debug logs to a file
 
     steps:
-      - name: Debug SSH Fingerprint Secret
-        run: echo "SSH_FINGERPRINT=${{ secrets.SSH_FINGERPRINT }}"
+      - name: Debug Secrets
+        run: |
+          echo "SSH_FINGERPRINT=${{ secrets.SSH_FINGERPRINT }}"
+          echo "DO_ACCESS_TOKEN=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}"
 
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v2
 
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v2
 
-      - name: Initialize Terraform
-        run: terraform init -upgrade
+      - name: Initialize Terraform (Debugging Enabled)
+        run: |
+          export TF_LOG=DEBUG
+          terraform init -upgrade | tee terraform-debug.log
         working-directory: terraform
 
-      - name: Plan Terraform
+      - name: Plan Terraform (Debugging Enabled)
         id: plan
-        run: terraform plan -out=tfplan -parallelism=5 -var="do_token=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}"
+        run: |
+          export TF_LOG=DEBUG
+          terraform plan -out=tfplan -parallelism=5 -var="do_token=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}" -var="ssh_fingerprint=${{ secrets.SSH_FINGERPRINT }}" | tee terraform-debug.log
         working-directory: terraform
 
-      - name: Show Plan
+      - name: Show Plan If Failure Occurs
         if: steps.plan.outcome == 'failure'
-        run: terraform show -no-color tfplan
+        run: terraform show -no-color tfplan | tee terraform-debug.log
         working-directory: terraform
 
-      - name: Apply Terraform
-        run: terraform apply -auto-approve tfplan -var="do_token=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}"
+      - name: Apply Terraform (Debugging Enabled)
+        run: |
+          export TF_LOG=DEBUG
+          terraform apply -auto-approve tfplan -var="do_token=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}" -var="ssh_fingerprint=${{ secrets.SSH_FINGERPRINT }}" | tee terraform-debug.log
         working-directory: terraform
 
       - name: Get Droplet IP
