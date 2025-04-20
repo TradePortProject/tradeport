@@ -58,7 +58,7 @@ jobs:
     outputs:
       droplet_ip: ${{ steps.get_ip.outputs.DROPLET_IP }}
 
-  deploy:
+ deploy:
     needs: terraform
     runs-on: ubuntu-latest
     env:
@@ -69,6 +69,9 @@ jobs:
       DROPLET_IP: ${{ needs.terraform.outputs.droplet_ip }}
 
     steps:
+      - name: Check Droplet IP Output
+        run: echo "DROplet IP in Deploy Job: ${{ env.DROPLET_IP }}"
+
       - name: Install Docker and Start Service
         run: |
           sudo apt-get update
@@ -84,12 +87,17 @@ jobs:
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "$DROPLET_IP" >> ~/.ssh/known_hosts
+          if [[ -n "${{ env.DROPLET_IP }}" ]]; then
+            ssh-keyscan -H "${{ env.DROPLET_IP }}" >> ~/.ssh/known_hosts
+          else
+            echo "Warning: DROPLET_IP is empty. Skipping ssh-keyscan."
+          fi
 
       - name: Deploy Containers to DigitalOcean
+        if: ${{ env.DROPLET_IP != '' }}
         run: |
-          echo "Connecting to Droplet at $DROPLET_IP..."
-          ssh -o StrictHostKeyChecking=no root@"$DROPLET_IP" << EOF
+          echo "Connecting to Droplet at ${{ env.DROPLET_IP }}..."
+          ssh -o StrictHostKeyChecking=no root@"${{ env.DROPLET_IP }}" << EOF
             echo "Logging into Docker..."
             docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_PASSWORD"
 
@@ -110,3 +118,5 @@ jobs:
             echo "Docker container status:"
             docker ps -a
           EOF
+        else:
+          echo "Warning: Skipping container deployment because DROPLET_IP is empty."
