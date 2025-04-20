@@ -53,8 +53,14 @@ jobs:
       - name: Get Droplet IP
         id: get_ip
         run: |
-          DROPLET_IP=$(terraform output -json droplet_ip | jq -r '.value')
-          echo "DROPLET_IP=$DROPLET_IP" >> $GITHUB_OUTPUT
+          OUTPUT_JSON=$(terraform output -json droplet_ip)
+          if echo "$OUTPUT_JSON" | jq -e '.value'; then
+            DROPLET_IP=$(echo "$OUTPUT_JSON" | jq -r '.value')
+            echo "DROPLET_IP=$DROPLET_IP" >> $GITHUB_OUTPUT
+          else
+            echo "Error: Failed to parse Terraform output as JSON."
+            exit 1
+          fi
         working-directory: terraform
     outputs:
       droplet_ip: ${{ steps.get_ip.outputs.DROPLET_IP }}
