@@ -34,8 +34,7 @@ jobs:
         id: plan
         run: |
           export TF_LOG=DEBUG
-          terraform plan -out=tfplan -parallelism=5 \
-            -var="ssh_fingerprint=${{ secrets.SSH_FINGERPRINT }}" 
+          terraform plan -out=tfplan -parallelism=5 -var="ssh_fingerprint=${{ secrets.SSH_FINGERPRINT }}" 
         working-directory: terraform
 
       - name: Show Plan If Failure Occurs
