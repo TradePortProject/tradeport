@@ -1,4 +1,4 @@
-name: Deploy to DigitalOcean
+name: Kafka-zookeeper Deploy to DigitalOcean
 
 on:
   workflow_dispatch:
