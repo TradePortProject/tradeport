@@ -74,7 +74,6 @@ jobs:
 
     steps:
       - name: Check Droplet IP Output
-        run: echo "DROplet IP in Deploy Job: ${{ env.DROPLET_IP }}"
 
       - name: Install Docker and Start Service
         run: |
