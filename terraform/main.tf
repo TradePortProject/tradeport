@@ -24,13 +24,14 @@ data "digitalocean_droplet" "app_server" {
   name = "tradeport-server"
 }
 
+
 resource "digitalocean_droplet" "new_droplet" {
-  count       = length(data.digitalocean_droplet.app_server.id) > 0 ? 0 : 1
-  name        = "tradeport-server"
-  region      = "sgp1"
-  size        = "s-2vcpu-4gb"
-  image       = "ubuntu-22-04-x64"
-  ssh_keys    = [var.ssh_fingerprint]
+  count         = data.digitalocean_droplet.app_server.id == null ? 1 : 0
+  name          = "tradeport-server"
+  region        = "sgp1"
+  size          = "s-2vcpu-4gb"
+  image         = "ubuntu-22-04-x64"
+  ssh_keys      = [var.ssh_fingerprint]
 }
 
 output "droplet_ip" {
