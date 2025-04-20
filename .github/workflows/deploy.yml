@@ -72,7 +72,10 @@ jobs:
       - name: Install Docker and Start Service
         run: |
           sudo apt-get update
-          sudo apt-get remove -y containerd containerd.io
+          sudo apt-get remove -y --purge containerd containerd.io docker docker-engine docker.io docker-ce
+          sudo apt-get autoremove -y
+          sudo apt-get clean
+          sudo apt-get update
           sudo apt-get install -y docker.io
           sudo systemctl start docker && sudo systemctl enable docker
 
