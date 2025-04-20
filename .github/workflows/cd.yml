@@ -44,21 +44,17 @@ jobs:
         run: terraform show -no-color tfplan
         working-directory: terraform
 
-      - name: Apply Terraform (Debugging Enabled)
-        id: apply
+      - name: Apply Terraform (Corrected Command)
         run: |
           export TF_LOG=DEBUG
-          terraform apply -auto-approve "tfplan" \
-            -var="do_token=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}" | tee terraform-apply.log
+          terraform apply -auto-approve "tfplan"
         working-directory: terraform
 
-      - name: Get Droplet IP
-        id: get_ip
+      - name: Get Droplet IP (Inspect Raw JSON Output)
+        id: get_ip_debug
         run: |
-          DROPLET_IP=$(terraform output -raw droplet_ip)
-          echo "DROPLET_IP=$DROPLET_IP" >> $GITHUB_OUTPUT
+          terraform output -json droplet_ip
         working-directory: terraform
-        continue-on-error: true # Allow the job to continue even if this step fails
     outputs:
       droplet_ip: ${{ steps.get_ip.outputs.DROPLET_IP }}
 
@@ -73,7 +69,6 @@ jobs:
       DROPLET_IP: ${{ needs.terraform.outputs.droplet_ip }}
 
     steps:
-
       - name: Install Docker and Start Service
         run: |
           sudo apt-get update
@@ -89,36 +84,29 @@ jobs:
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          if [[ -n "${{ env.DROPLET_IP }}" ]]; then
-            ssh-keyscan -H "${{ env.DROPLET_IP }}" >> ~/.ssh/known_hosts
-          else
-            echo "Warning: DROPLET_IP is empty. Skipping ssh-keyscan."
-          fi
+          ssh-keyscan -H "$DROPLET_IP" >> ~/.ssh/known_hosts
 
       - name: Deploy Containers to DigitalOcean
-        if: ${{ env.DROPLET_IP != '' }}
-        run: |
-          echo "Connecting to Droplet at ${{ env.DROPLET_IP }}..."
-          ssh -o StrictHostKeyChecking=no root@"${{ env.DROPLET_IP }}" 
-            echo "Logging into Docker..."
-            docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_PASSWORD"
+        run: |
+          echo "Connecting to Droplet at $DROPLET_IP..."
+          ssh -o StrictHostKeyChecking=no root@"$DROPLET_IP" << EOF
+            echo "Logging into Docker..."
+            docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_PASSWORD"
 
-            echo "Creating Docker network..."
-            docker network create my_network || true
+            echo "Creating Docker network..."
+            docker network create my_network || true
 
-            echo "Deploying MSSQL container..."
-            docker pull prabhulalithakrishnan/tradeport-backend-mssql:latest
-            docker stop mssql || true
-            docker rm mssql || true
-            docker run -d -p 1433:1433 \
-              -e SA_PASSWORD="$SA_PASSWORD" \
-              --name mssql \
-              --network=my_network \
-              --mount type=bind,source=/mnt/volume_sgp1_01,target=/mnt/volume_sgp1_01 \
-              prabhulalithakrishnan/tradeport-backend-mssql:latest
+            echo "Deploying MSSQL container..."
+            docker pull prabhulalithakrishnan/tradeport-backend-mssql:latest
+            docker stop mssql || true
+            docker rm mssql || true
+            docker run -d -p 1433:1433 \
+              -e SA_PASSWORD="$SA_PASSWORD" \
+              --name mssql \
+              --network=my_network \
+              --mount type=bind,source=/mnt/volume_sgp1_01,target=/mnt/volume_sgp1_01 \
+              prabhulalithakrishnan/tradeport-backend-mssql:latest
 
-            echo "Docker container status:"
-            docker ps -a
-          EOF
-        else:
-          echo "Warning: Skipping container deployment because DROPLET_IP is empty."
+            echo "Docker container status:"
+            docker ps -a
+          EOF
