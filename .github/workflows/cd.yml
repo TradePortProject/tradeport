@@ -81,6 +81,7 @@ jobs:
 
       - name: Configure SSH Access
         run: |
+          echo "DROPLET_IP=$DROPLET_IP"
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
