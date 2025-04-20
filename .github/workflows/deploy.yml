@@ -48,7 +48,8 @@ jobs:
         run: |
           export TF_LOG=DEBUG
           terraform apply -auto-approve "tfplan" \
-            -var="do_token=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}"
+            -var="do_token=${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}" \
+            -var="ssh_fingerprint=${{ secrets.SSH_FINGERPRINT }}" | tee terraform-debug.log
         working-directory: terraform
 
       - name: Get Droplet IP
