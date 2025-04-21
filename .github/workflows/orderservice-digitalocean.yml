@@ -98,14 +98,14 @@ jobs:
             docker network create my_network || true
 
             echo "Deploying orderservice container..."
-            docker pull prabhulalithakrishnan/tradeport-backend-orderservice-orderservice:latest
+            docker pull prabhulalithakrishnan/orderservice:latest
             docker stop orderservice || true
             docker rm orderservice || true
             docker run -d -p 3017:3017 \
               --name orderservice \
               --network=my_network \
               --mount type=bind,source=/mnt/volume_sgp1_01,target=/mnt/volume_sgp1_01 \
-              prabhulalithakrishnan/tradeport-backend-orderservice-orderservice:latest   
+              prabhulalithakrishnan/orderservice:latest   
 
               
             echo "Docker container status:"
