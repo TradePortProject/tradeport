@@ -98,14 +98,14 @@ jobs:
             docker network create my_network || true
 
             echo "Deploying identityservice container..."
-            docker pull prabhulalithakrishnan/tradeport-backend-identity-identityservice:latest
+            docker pull prabhulalithakrishnan/identityservice:latest
             docker stop identityservice || true
             docker rm identityservice || true
             docker run -d -p 7237:7237 \
               --name identityservice \
               --network=my_network \
               --mount type=bind,source=/mnt/volume_sgp1_01,target=/mnt/volume_sgp1_01 \
-              prabhulalithakrishnan/tradeport-backend-identity-identityservice:latest
+              prabhulalithakrishnan/identityservice:latest
 
               
             echo "Docker container status:"
