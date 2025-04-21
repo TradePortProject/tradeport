@@ -98,7 +98,7 @@ jobs:
             docker network create my_network || true
 
             echo "Deploying MSSQL container..."
-            docker pull prabhulalithakrishnan/tradeport-backend-mssql:latest
+            docker pull prabhulalithakrishnan/mssql:latest
             docker stop mssql || true
             docker rm mssql || true
             docker run -d -p 1433:1433 \
@@ -106,7 +106,7 @@ jobs:
               --name mssql \
               --network=my_network \
               --mount type=bind,source=/mnt/volume_sgp1_01,target=/mnt/volume_sgp1_01 \
-              prabhulalithakrishnan/tradeport-backend-mssql:latest
+              prabhulalithakrishnan/mssql:latest
 
              
             echo "Docker container status:"
