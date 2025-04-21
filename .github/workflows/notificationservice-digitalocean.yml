@@ -98,14 +98,14 @@ jobs:
             docker network create my_network || true
 
             echo "Deploying Notificationservice container..."
-            docker pull prabhulalithakrishnan/tradeport-backend-notificationservice-notificationservice:latest
+            docker pull prabhulalithakrishnan/notificationservice:latest
             docker stop notificationservice || true
             docker rm notificationservice || true
             docker run -d -p 9098:9098 \
               --name notificationservice \
               --network=my_network \
               --mount type=bind,source=/mnt/volume_sgp1_01,target=/mnt/volume_sgp1_01 \
-              prabhulalithakrishnan/tradeport-backend-notificationservice-notificationservice:latest
+              prabhulalithakrishnan/notificationservice:latest
 
             echo "Docker container status:"
             docker ps -a
