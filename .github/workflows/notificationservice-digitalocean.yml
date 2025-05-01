@@ -103,11 +103,13 @@ jobs:
             docker rm notificationservice || true
             docker run -d --name notificationservice --network=my_network \
             -p 9098:9098 \
-            -e SPRING_KAFKA_BOOTSTRAP_SERVERS=localhost:9092 \
+            -e SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092 \
             -e KAFKA_TOPIC=tradeport-notify \
             -e MAIL_USERNAME=prabhulalitha48@gmail.com \
             -e MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }} \
-            prabhulalithakrishnan/notificationservice:latest
+            -e AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }} \
+            -e AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}  \
+            prabhulalithakrishnan/notificationservice:latest            
 
             echo "Docker container status:"
             docker ps -a
