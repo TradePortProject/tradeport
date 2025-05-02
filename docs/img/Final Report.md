@@ -442,3 +442,39 @@ All CD-related infrastructure and automation scripts are version-controlled in t
 > - Additional architectural decisions
 > - Usability enhancements
 > - Team retrospectives
+
+### 5.1 DevSecOps Excellence
+
+- Integrated **SAST**, **SCA**, and **Container Scanning** into the CI pipeline
+- Tools: SonarQube, Snyk, OWASP Scan, Docker Scout
+- Automated workflows ensure every PR runs linting, testing, security, and container build checks
+
+### 5.2 Infrastructure-as-Code and Automation
+
+- Infrastructure provisioning is automated using **Terraform**
+- Configuration and deployment are managed using **Ansible**
+- CI/CD scripts, infra definitions, and secrets management are version-controlled
+
+### 5.3 Developer Enablement
+
+- A `docker-compose` script bootstraps local development: starts Docker containers, installs dependencies, seeds the database
+- Onboarding documentation and `.env.example` files are maintained to reduce friction
+
+### 5.4 Scalable Design Thinking
+
+- Modular architecture across frontend and microservices
+- Use of Strategy, Factory, Singleton, and Repository patterns across services
+- JWT validation and role-checking are decoupled and extensible for new roles
+
+### 5.5 Collaboration and Agile Practice
+
+- Pair programming structure with defined Primary and Secondary roles
+- Agile sprints tracked via JIRA and GitHub Projects
+- Post-sprint retrospectives and daily stand-ups conducted in sync with Scrum best practices
+
+### 5.6 Future Scope (Post-Capstone)
+
+- Wholesaler dashboard and inventory management
+- Admin role with monitoring and analytics
+- Kafka integration for event-driven communication
+- Performance benchmarking and horizontal scaling tests
