@@ -95,9 +95,26 @@ Retailers face challenges in discovering wholesale inventory, while wholesalers 
 > - (a) Use case analysis & design
 > - (b) Solving design problems using patterns
 
-The team followed agile methodology using JIRA and GitHub Projects. Each member took ownership of at least one use case and one design pattern:
+The team adopted Agile Scrum methodology with a focus on **pair programming** and **collaborative ownership**. For each user story and design task, we identified:
+
+- **Primary team members**: Developers with prior familiarity or domain ownership.
+- **Secondary team members**: Paired collaborators assigned to learn and contribute, promoting knowledge transfer.
 
 ### 2.2 Project Status
+
+- ✅ **Sprint 1 (Completed)**: Delivered core authentication and registration use cases (TP-UC-001 to TP-UC-004), frontend layout, and initial CI setup.
+- ✅ **Sprint 2 (Completed)**: Completed logout flow (TP-UC-006), DevSecOps integration, and fully containerized deployment to staging environment on DigitalOcean.
+- 🔄 **Post-sprint phase (Ongoing)**: Refinement of documentation, UI polishing, and final project report preparation.
+
+| Sprint   | Status    | Note         |
+| -------- | --------- | ------------ |
+| Sprint 1 | Completed | Delivered xx |
+| Sprint 2 | Completed | Delivered xx |
+| Sprint 3 | Completed | Delivered xx |
+| Sprint 4 | Completed | Delivered xx |
+| Sprint 5 | Completed | Delivered xx |
+| Sprint 6 | Completed | Delivered xx |
+| Sprint 7 | Completed | Delivered xx |
 
 Describe the current project status. Highlight any outstanding issues.
 
