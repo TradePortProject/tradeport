@@ -132,6 +132,21 @@ This section adopts the 4+1 View Model to describe the TradePort system architec
 > - Runtime behavior of microservices
 > - Inter-service communication
 
+**CI/CD Pipelines**:
+
+1. GitHub Actions is used for CI across frontend and backend.
+2. SonarQube and Snyk integrated for quality and vulnerability checks.
+
+**Microservices**:
+
+1. Services run independently in Docker containers.
+2. Authentication, User Management, and Product Listing are separate microservices.
+
+**Inter-service Communication**:
+
+1. REST APIs secured with JWTs.
+2. Services validate JWTs using a locally cached public key.
+
 #### 3.1.3 Development View
 
 > This view describes the software modules and their structure in the development environment. It includes:
@@ -142,9 +157,19 @@ This section adopts the 4+1 View Model to describe the TradePort system architec
 
 The development view describes the organization of the software artifacts and source code. It includes:
 
-Modular repository layout: /frontend, /auth-service, /user-service, /scripts, /infra
+**Modular repository layout**:
 
-Technologies used: React (Vite + TypeScript + TailwindCSS), .NET Core (C#), SQL Server
+1. /frontend
+2. /identity-service
+3. /user-service
+4. /product-service
+5. /tradeport
+
+**Technologies used**:
+
+1. React (Vite + TypeScript + TailwindCSS)
+2. .NET Core (C#)
+3. SQL Server
 
 DevSecOps practices including SonarQube for code quality, Snyk and GitHub Dependabot for dependency vulnerability scanning, OWASP scanning for vulnerability detection, and Docker Scout for container image security
 
