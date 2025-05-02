@@ -114,6 +114,8 @@ Provide project milestones and the effort expended by each team member.
 > Use UML to describe the overall architecture (e.g., components, layers, packages).  
 > Mention tech stacks, frameworks, databases, etc.
 
+This section adopts the 4+1 View Model to describe the TradePort system architecture from multiple perspectives. Each view supports different stakeholder concerns while together they provide a comprehensive understanding of the system's design.
+
 #### 3.1.1 Logical View
 
 > This view models the key abstractions of the system as classes and relationships. It includes:
@@ -138,6 +140,18 @@ Provide project milestones and the effort expended by each team member.
 > - Module decomposition
 > - Branching strategy and DevSecOps practices
 
+The development view describes the organization of the software artifacts and source code. It includes:
+
+Modular repository layout: /frontend, /auth-service, /user-service, /scripts, /infra
+
+Technologies used: React (Vite + TypeScript + TailwindCSS), .NET Core (C#), SQL Server
+
+DevSecOps practices including SonarQube for code quality, Snyk and GitHub Dependabot for dependency vulnerability scanning, OWASP scanning for vulnerability detection, and Docker Scout for container image security
+
+Trunk-based development strategy: the main branch is always in a deployable state, with short-lived feature branches merged via pull requests after successful CI checks
+
+This view is targeted at developers and maintainers for understanding codebase structure and collaborative workflows.
+
 #### 3.1.4 Physical View
 
 > This view captures the deployment architecture. It includes:
@@ -146,6 +160,14 @@ Provide project milestones and the effort expended by each team member.
 > - Network topology
 > - Environment setup (Dev, Staging, Prod)
 
+The physical view models the system's infrastructure and deployment topology. It includes:
+
+1. Docker Compose setup for local development with volume and network isolation
+2. Digital Ocean Droplets hosting containerized microservices for staging and production
+3. Network boundaries between public-facing frontend, internal backend services, and database with firewall and environment variables management
+
+This view serves infrastructure and DevOps teams concerned with scalability, reliability, and environment separation.
+
 #### 3.1.5 Scenarios (Use Cases)
 
 > This view illustrates how the system behaves in real-world usage. It includes:
@@ -153,6 +175,15 @@ Provide project milestones and the effort expended by each team member.
 > - Use Case Diagrams
 > - Flow of Events
 > - Activity + Sequence Diagrams
+
+This view illustrates how the system behaves in various real-world scenarios and is supported by the following artifacts:
+
+1. Use Case Diagrams showing actors and their interactions
+2. Detailed Use Case Descriptions with Basic and Alternative Flows
+3. Activity Diagrams modeling user workflows
+4. Sequence Diagrams depicting runtime collaborations
+
+These scenarios support requirements validation, functional testing, and training new team members by offering usage-centric insight into the system.
 
 ### 3.2 Transition from Analysis to Design
 
