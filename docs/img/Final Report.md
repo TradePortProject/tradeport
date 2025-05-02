@@ -360,6 +360,25 @@ These scenarios support requirements validation, functional testing, and trainin
 > - Branching strategy
 > - Developer authentication
 
+The project uses a **monorepo architecture** hosted on GitHub. Key practices include:
+
+- **Repository Layout**:
+
+  - `/frontend` – Vite + React + Tailwind
+  - `/identity-service`, `/user-service`, `/product-service` – .NET microservices
+  - `/tradeport` – Terraform scripts and Docker Compose setup
+
+- **Branching Strategy**:
+
+  - Trunk-based development
+  - `main` is always deployable
+  - Feature branches follow the pattern `feature/*`
+  - Pull requests require passing CI checks and peer review
+
+- **Access Control**:
+  - Developer permissions managed via GitHub Teams
+  - Sensitive values (e.g., API keys, secrets) injected via GitHub Actions Secrets
+
 ### 4.2 Continuous Integration
 
 > Explain the CI pipeline:
@@ -367,6 +386,20 @@ These scenarios support requirements validation, functional testing, and trainin
 > - Triggers
 > - Jobs and tests executed
 > - Tools used (e.g., GitHub Actions, Jenkins)
+
+**CI Pipelines** are implemented using **GitHub Actions**, triggered on every push or pull request. Steps include:
+
+1. Linting (ESLint, .NET Format)
+2. Unit Testing (Vitest for frontend, XUnit for backend)
+3. Code Coverage Reporting
+4. Static Code Analysis (SonarQube)
+5. Vulnerability Scanning:
+   - Dependency: Snyk, GitHub Dependabot
+   - OWASP Dependency-Check
+   - Container: Docker Scout
+6. Docker Build and Push to Container Registry (tagged by sprint)
+
+CI feedback is shown inline in GitHub pull requests.
 
 ### 4.3 Continuous Delivery
 
@@ -376,7 +409,29 @@ These scenarios support requirements validation, functional testing, and trainin
 > - Promotion/approval strategy
 > - How deployments are verified
 
----
+CD is implemented as a **multi-environment deployment pipeline** using GitHub Actions.
+
+All CD-related infrastructure and automation scripts are version-controlled in the `/tradeport` directory, including:
+
+- `terraform/` – Infrastructure provisioning for DigitalOcean
+- `ansible/` – Configuration management and service provisioning
+- `deploy/` – GitHub Actions workflows and CD orchestration
+
+#### Environments
+
+- **`dev`** – Auto-deployed on push to `main`
+- **`staging`** – Promoted manually from `main` after successful test review
+- **`prod`** – Deployed on version tag (e.g., `v1.0.0`) with manual approval and checks
+
+#### Automation & Tooling
+
+- **Terraform** provisions DigitalOcean droplets and networking components
+- **GitHub Actions** drives all deployment workflows across environments
+- **GitHub Secrets** securely inject API keys, DB credentials, and tokens
+- **Docker images** are built and pushed to container registry with semantic version tags
+- **Health checks** and webhook integrations validate deployments
+
+## This approach ensures **repeatable, auditable, and secure deployments** across environments.
 
 ## 5. Other Things to Be Highlighted
 
