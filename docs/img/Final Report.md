@@ -102,10 +102,6 @@ The team adopted Agile Scrum methodology with a focus on **pair programming** an
 
 ### 2.2 Project Status
 
-- ✅ **Sprint 1 (Completed)**: Delivered core authentication and registration use cases (TP-UC-001 to TP-UC-004), frontend layout, and initial CI setup.
-- ✅ **Sprint 2 (Completed)**: Completed logout flow (TP-UC-006), DevSecOps integration, and fully containerized deployment to staging environment on DigitalOcean.
-- 🔄 **Post-sprint phase (Ongoing)**: Refinement of documentation, UI polishing, and final project report preparation.
-
 | Sprint   | Status    | Note         |
 | -------- | --------- | ------------ |
 | Sprint 1 | Completed | Delivered xx |
