@@ -1,6 +1,4 @@
-# Project Report for <Project Name>
-
-**Practice Module for Certificate in Designing Modern Software Systems**  
+# Project Report for <Project Name> **Practice Module for Certificate in Designing Modern Software Systems**  
 **Team <Number>**  
 **Members:**
 
