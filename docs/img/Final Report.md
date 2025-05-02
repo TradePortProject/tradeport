@@ -39,9 +39,18 @@ Retailers face challenges in discovering wholesale inventory, while wholesalers 
 
 > List the key business and IT stakeholders in the initiative.
 
-Product Owner: TradePort Team Supervisor
-Developers: Team 6 Members
-End Users: Retailers, Wholesalers, Admin
+- **Product Owner**: SWE5006 Project Supervisor
+- **Development Team**: Team 6
+  - Prabhu
+  - Ranjith
+  - Sowjanya
+  - Sreeraj
+  - Su Maw
+  - Su Mon
+- **End Users**:
+  - Retailers
+  - Wholesalers
+  - Admin (Future Scope)
 
 ### 1.4 Project Scope
 
@@ -124,6 +133,18 @@ This section adopts the 4+1 View Model to describe the TradePort system architec
 > - Use Case sequence diagrams
 > - Boundary/Control/Entity classes
 
+**Included Artifacts** :
+
+1. Analysis Model Class Diagrams with Entity, Boundary, and Control classes
+2. Use Case Sequence Diagrams capturing runtime collaborations
+3. Package diagrams to illustrate modular decomposition
+
+**Key Highlights**:
+
+4. Entity classes represent core business objects (e.g., User, Product, AuthToken)
+5. Boundary classes handle user inputs and outputs (e.g., LoginController)
+6. Control classes coordinate business logic (e.g., AuthService, UserService)
+
 #### 3.1.2 Process View
 
 > This view outlines the concurrency and communication aspects of the system. It includes:
@@ -135,17 +156,31 @@ This section adopts the 4+1 View Model to describe the TradePort system architec
 **CI/CD Pipelines**:
 
 1. GitHub Actions is used for CI across frontend and backend.
-2. SonarQube and Snyk integrated for quality and vulnerability checks.
+2. CI steps include:
+   <br>2.1. Lint
+   <br>2.2. Unit Test
+   <br>2.3. Static Code Analysis (SonarQube)
+   <br>2.4. Snyk Security Scan
+   <br>2.5. Dependency Checks (GitHub Dependabot)
+   <br>2.6. Container Scan (Docker Scout)
+   <br>2.7. Build
+   <br>2.8. Push.
+3. Artifacts are tagged per sprint using semantic versioning.
 
 **Microservices**:
 
 1. Services run independently in Docker containers.
-2. Authentication, User Management, and Product Listing are separate microservices.
+2. Current services:
+   <br>2.1. identity-service (authentication)
+   <br>2.2. user-service (registration and user data)
+   <br>2.3. product-service (product listing and exploration)
 
 **Inter-service Communication**:
 
 1. REST APIs secured with JWTs.
-2. Services validate JWTs using a locally cached public key.
+2. Authentication is handled using Google OAuth via Auth0, which returns a signed JWT.
+3. Authorization is enforced using a custom role-based token validation mechanism.
+4. Token validation is decentralized using cached public keys.
 
 #### 3.1.3 Development View
 
@@ -166,14 +201,21 @@ The development view describes the organization of the software artifacts and so
 5. /tradeport
 
 **Technologies used**:
-
-1. React (Vite + TypeScript + TailwindCSS)
-2. .NET Core (C#)
-3. SQL Server
+|Segment|Stack|
+|---|---|
+|Frontend|React (Vite + TypeScript + TailwindCSS)|
+|Backend|.NET Core (C#), REST APIs|
+|Databse|SQL Server|
 
 DevSecOps practices including SonarQube for code quality, Snyk and GitHub Dependabot for dependency vulnerability scanning, OWASP scanning for vulnerability detection, and Docker Scout for container image security
 
 Trunk-based development strategy: the main branch is always in a deployable state, with short-lived feature branches merged via pull requests after successful CI checks
+
+**CI Workflow**:
+
+1. Triggered on push/PR to main or feature/\*
+2. Test, scan, build, and publish pipelines are enforced for each commit
+3. make dev script helps new developers bootstrap the local environment quickly
 
 This view is targeted at developers and maintainers for understanding codebase structure and collaborative workflows.
 
@@ -181,7 +223,7 @@ This view is targeted at developers and maintainers for understanding codebase s
 
 > This view captures the deployment architecture. It includes:
 >
-> - Container orchestration (Docker Compose, Azure App Services)
+> - Container orchestration (Docker Compose, Digital Ocean Droplets)
 > - Network topology
 > - Environment setup (Dev, Staging, Prod)
 
@@ -193,6 +235,29 @@ The physical view models the system's infrastructure and deployment topology. It
 
 This view serves infrastructure and DevOps teams concerned with scalability, reliability, and environment separation.
 
+### Deployment Setup
+
+#### Local Development
+
+- Docker Compose is used to orchestrate frontend and backend microservices locally
+- Environment variables are managed using `.env` files
+
+#### Staging/Production
+
+- Hosted on **DigitalOcean Droplets**
+- Infrastructure provisioned using **Terraform**
+- Configuration and service provisioning automated using **Ansible**
+- Environment variables are securely managed via **GitHub Actions Secrets**
+- Database containers run with mounted volumes for secure data persistence
+
+#### Network Topology
+
+- Public-facing frontend routes traffic through an **NGINX reverse proxy**
+- **Google OAuth** (via Auth0) handles user authentication
+- Backend services perform custom **JWT-based authorization**, validating roles from token claims
+- JWTs are validated using a **cached public key** in each microservice
+- Internal microservices communicate over a **private Docker bridge network**
+
 #### 3.1.5 Scenarios (Use Cases)
 
 > This view illustrates how the system behaves in real-world usage. It includes:
@@ -203,10 +268,12 @@ This view serves infrastructure and DevOps teams concerned with scalability, rel
 
 This view illustrates how the system behaves in various real-world scenarios and is supported by the following artifacts:
 
-1. Use Case Diagrams showing actors and their interactions
-2. Detailed Use Case Descriptions with Basic and Alternative Flows
-3. Activity Diagrams modeling user workflows
-4. Sequence Diagrams depicting runtime collaborations
+### Supporting Artifacts
+
+- **Use Case Diagram**: Includes primary actors such as Retailer, Wholesaler, and Admin
+- **Use Case Specifications**: Contain detailed Basic and Alternative Flows, Preconditions, and Postconditions
+- **Activity Diagrams**: Represent the control flow across frontend components and backend services
+- **Sequence Diagrams**: Illustrate runtime message exchanges between system components (e.g., controllers, services, databases)
 
 These scenarios support requirements validation, functional testing, and training new team members by offering usage-centric insight into the system.
 
