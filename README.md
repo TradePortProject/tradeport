@@ -1,5 +1,8 @@
 # Tradeport Project
-
+<!--START_SECTION:github-actions-badges-->
+[![CI](https://github.com/TradePortProject/tradeport-frontend/actions/workflows/ci.yml/badge.svg)](https://github.com/TradePortProject/tradeport-frontend/actions/workflows/ci.yml)<br>
+[![CD Pipeline - Deploy to Dockerhub](https://github.com/TradePortProject/tradeport-frontend/actions/workflows/cd.yml/badge.svg?branch=main)](https://github.com/TradePortProject/tradeport-frontend/actions/workflows/cd.yml)
+<!--END_SECTION:github-actions-badges-->
 This project consists of three main services: `mssql`, `frontend`, and `productservice`. Each service is containerized using Docker and orchestrated using Docker Compose. The services are connected via a Docker network called `my_network`.
 
 ## Prerequisites
