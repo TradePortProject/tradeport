@@ -6,6 +6,8 @@
 [![CI - Backend Identity - Deploy Tradeport Identity Service  to Dockerhub](https://github.com/TradePortProject/tradeport-backend-identity/actions/workflows/cd.yml/badge.svg)](https://github.com/TradePortProject/tradeport-backend-identity/actions/workflows/cd.yml)<br>
 [![CI - Backend Product - Build, Test & Security Scan](https://github.com/TradePortProject/tradeport-backend-productservice/actions/workflows/ci.yml/badge.svg)](https://github.com/TradePortProject/tradeport-backend-productservice/actions/workflows/ci.yml)<br>
 [![CI - Backend Product - Deploy Tradeport Product Service  to Dockerhub](https://github.com/TradePortProject/tradeport-backend-productservice/actions/workflows/cd.yml/badge.svg)](https://github.com/TradePortProject/tradeport-backend-productservice/actions/workflows/cd.yml)<br>
+[![CI - Backend Order - Build, Test & Security Scan](https://github.com/TradePortProject/tradeport-backend-orderservice/actions/workflows/ci.yml/badge.svg)](https://github.com/TradePortProject/tradeport-backend-orderservice/actions/workflows/ci.yml)<br>
+[![CI - Backend Order - Deploy Tradeport Product Service  to Dockerhub](https://github.com/TradePortProject/tradeport-backend-orderservice/actions/workflows/cd.yml/badge.svg)](https://github.com/TradePortProject/tradeport-backend-orderservice/actions/workflows/cd.yml)<br>
 
 <!--END_SECTION:github-actions-badges-->
 This project consists of three main services: `mssql`, `frontend`, and `productservice`. Each service is containerized using Docker and orchestrated using Docker Compose. The services are connected via a Docker network called `my_network`.
