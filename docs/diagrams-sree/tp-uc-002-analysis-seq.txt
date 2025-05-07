@@ -1,0 +1,63 @@
+@startuml
+title TP-UC-002 – Check Registration Status (Analysis)
+
+skinparam style strictuml
+skinparam shadowing false
+skinparam DefaultFontName "Segoe UI"
+skinparam SequenceMessageAlign center
+
+skinparam participant {
+  BackgroundColor<<boundary>> #EAF2F8
+  BorderColor<<boundary>> #2D3C50
+
+  BackgroundColor<<control>> #FFF5CC
+  BorderColor<<control>> #DAA520
+
+  BackgroundColor<<entity>> #E0FFE0
+  BorderColor<<entity>> #2E8B57
+
+  FontName "Segoe UI"
+  FontColor black
+}
+
+skinparam actor {
+  BackgroundColor #FADBD8
+  BorderColor black
+  FontColor black
+  FontName "Segoe UI"
+}
+
+actor Guest
+
+boundary "LoginComponent" as LC <<boundary>>
+boundary "UserController" as UC <<boundary>>
+control "RegistrationService" as RS <<control>>
+entity "JWT" as Token <<entity>>
+entity "User" as U <<entity>>
+database "UserDB" as DB <<entity>>
+
+Guest -> LC : Already Logged In
+LC -> Token : Read stored JWT
+Token --> LC : token with email, role
+LC -> UC : checkRegistrationStatus(token)
+UC -> RS : validateAndLookup(token)
+RS -> Token : decode + verify token
+Token --> RS : token valid
+RS -> DB : findUserByEmail(token.email)
+DB --> RS : user record (or null)
+
+alt User found
+  RS -> U : map record to User
+  RS --> UC : return User with role
+  UC --> LC : show user profile
+else User not found
+  RS --> UC : return null
+  UC --> LC : prompt for registration
+end
+
+opt Token expired
+  RS --> UC : return 401 Unauthorized
+  UC --> LC : redirect to login
+end
+
+@enduml

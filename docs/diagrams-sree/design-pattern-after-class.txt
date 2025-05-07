@@ -1,0 +1,109 @@
+@startuml
+title Tightly Coupled Authentication and Role Handling (After Design Pattern Application)
+
+top to bottom direction
+skinparam style strictuml
+skinparam shadowing false
+
+skinparam class {
+  FontName "Segoe UI"
+  BorderColor black
+  ArrowColor #2D3C50
+  BackgroundColor White
+
+  BackgroundColor<<facade>> #FFF9DB
+  BorderColor<<facade>> #B7950B
+
+  BackgroundColor<<strategy>> #E3F2FD
+  BorderColor<<strategy>> #2874A6
+
+  BackgroundColor<<concrete-strategy>> #E3F2FD
+  BorderColor<<concrete-strategy>> #2E86C1
+}
+
+package "Frontend" {
+  class "LoginPage" <<component>> {
+    + handleLogin(idToken: string): void
+  }
+
+  class "AuthService" <<control>> {
+    + login(idToken: string): Promise<void>
+  }
+
+  class "ReduxStore" <<store>> {
+    + authState: AuthState
+    + dispatch(action): void
+  }
+
+  LoginPage --> AuthService : login(idToken)
+  AuthService --> ReduxStore : dispatch(loginSuccess)
+
+  note right of ReduxStore #F9EBEA
+  Manages authentication state, including JWT and role.
+  end note
+}
+
+package "Backend" {
+  class "AuthController" <<control>> {
+    + Login(idToken: string): IActionResult
+  }
+
+  class "AuthFacadeService" <<facade>> {
+    - strategy: AuthStrategy
+    - userRepo: UserRepository
+    - tokenService: TokenService
+    + AuthenticateUser(idToken: string): string
+  }
+
+  abstract class "AuthStrategy" <<strategy>> {
+    + validateToken(idToken: string): Claims
+  }
+
+  class "GoogleAuthStrategy" <<concrete-strategy>>
+  class "GitHubAuthStrategy" <<concrete-strategy>>
+  class "MicrosoftAuthStrategy" <<concrete-strategy>>
+
+  class "TokenService" <<control>> {
+    + generateJWT(user): string
+  }
+
+  class "UserRepository" <<store>> {
+    + findByEmail(email): User
+    + save(user): void
+  }
+
+  AuthService --> AuthController : POST /auth/login
+  AuthController --> AuthFacadeService : AuthenticateUser()
+
+  AuthFacadeService --> AuthStrategy : validateToken()
+  AuthFacadeService --> UserRepository : findByEmail(), save()
+  AuthFacadeService --> TokenService : generateJWT()
+
+  AuthStrategy <|-- GoogleAuthStrategy
+  AuthStrategy <|-- GitHubAuthStrategy
+  AuthStrategy <|-- MicrosoftAuthStrategy
+
+  note right of AuthFacadeService #FFF9DB
+  <<Facade Pattern>>
+
+  New class introduced to encapsulate:
+  • token validation (via strategy)
+  • user persistence (via repository)
+  • JWT generation (via service)
+
+  Controller delegates full workflow to this Facade.
+  end note
+
+  note right of AuthStrategy #E3F2FD
+  <<Strategy Pattern>>
+
+  Common interface for login strategies.
+  Easily extended to support new providers.
+  end note
+
+  note right of TokenService #FFFFDD
+  Introduced as reusable JWT utility.
+  No longer embedded inside controller logic.
+  end note
+}
+@enduml

@@ -1,0 +1,107 @@
+@startuml
+title TP-UC-002 – Check Registration Status (Design)
+
+skinparam style strictuml
+skinparam shadowing false
+skinparam class {
+  FontName "Segoe UI"
+  BackgroundColor #FDFEFE
+  BorderColor black
+  ArrowColor #2D3C50
+}
+
+skinparam stereotype {
+  CBackgroundColor<<component>> #EAF2F8
+  CBorderColor<<component>> #2D3C50
+
+  CBackgroundColor<<control>> #FFF5CC
+  CBorderColor<<control>> #DAA520
+
+  CBackgroundColor<<model>> #E0FFE0
+  CBorderColor<<model>> #2E8B57
+
+  CBackgroundColor<<config>> #FDEBD0
+  CBorderColor<<config>> #A04000
+}
+
+' ===============================
+' Frontend Package
+' ===============================
+package "Frontend" {
+  class "LoginComponent" <<component>> {
+    + checkRegistrationStatus(): void
+    + redirectBasedOnRole(): void
+  }
+}
+
+' ===============================
+' Backend Package
+' ===============================
+package "Backend" {
+  class "UserAPIController" <<component>> {
+    + checkRegistrationStatus(token): User | null
+  }
+
+  class "RegistrationService" <<control>> {
+    + validateToken(token): boolean
+    + getUserByEmail(email: string): User | null
+  }
+
+  class "UserDAO" <<component>> {
+    + findByEmail(email: string): DBRecord | null
+  }
+
+  class "JWT" <<model>> {
+    + email: string
+    + role: string
+    + exp: Date
+  }
+
+  class "User" <<model>> {
+    + email: string
+    + role: string
+    + registered: boolean
+  }
+
+  class "Retailer" <<model>>
+  class "Wholesaler" <<model>>
+  class "Admin" <<model>>
+
+  User <|-- Retailer
+  User <|-- Wholesaler
+  User <|-- Admin
+}
+
+' ===============================
+' Relationships
+' ===============================
+
+LoginComponent --> UserAPIController : send JWT
+UserAPIController --> RegistrationService : validateToken()
+RegistrationService --> JWT : decode/verify
+RegistrationService --> UserDAO : getUserByEmail()
+UserDAO --> User : maps record to model
+User --> UserAPIController : return user data
+UserAPIController --> LoginComponent : send user or prompt register
+
+' ===============================
+' Notes on Transition
+' ===============================
+
+note right of RegistrationService
+Validates JWT using backend\n
+library (e.g., Microsoft.IdentityModel.Tokens)
+Handles lookup via UserDAO.
+end note
+
+note right of JWT
+Includes role, email, expiry
+Used for backend validation.
+end note
+
+note right of LoginComponent
+Triggers status check after login
+Redirects based on user role.
+end note
+
+@enduml

@@ -1,0 +1,89 @@
+@startuml
+title TP-UC-002 – Check Registration Status (Design)
+
+skinparam style strictuml
+skinparam shadowing false
+skinparam DefaultFontName "Segoe UI"
+skinparam SequenceMessageAlign center
+
+skinparam participant {
+  BackgroundColor<<component>> #EAF2F8
+  BorderColor<<component>> #2D3C50
+
+  BackgroundColor<<control>> #FFF5CC
+  BorderColor<<control>> #DAA520
+
+  BackgroundColor<<model>> #E0FFE0
+  BorderColor<<model>> #2E8B57
+
+  BackgroundColor<<dao>> #FADBD8
+  BorderColor<<dao>> black
+
+  FontName "Segoe UI"
+  FontColor black
+}
+
+skinparam actor {
+  BackgroundColor #F9EBEA
+  BorderColor black
+  FontColor black
+  FontName "Segoe UI"
+}
+
+actor Guest
+
+participant "LoginComponent" <<component>>
+participant "UserAPIController" <<component>>
+control "RegistrationService" <<control>>
+participant "JWT" <<model>>
+participant "UserDAO" <<dao>>
+participant "User" <<model>>
+
+Guest -> LoginComponent : Already logged in
+
+LoginComponent -> JWT : Read token
+JWT --> LoginComponent : email, role, expiry
+
+LoginComponent -> UserAPIController : checkRegistrationStatus(token)
+
+UserAPIController -> RegistrationService : validateToken(token)
+RegistrationService -> JWT : decode + verify
+JWT --> RegistrationService : token payload
+
+RegistrationService -> UserDAO : findByEmail(token.email)
+UserDAO --> RegistrationService : DB record (or null)
+
+alt User found
+  RegistrationService -> User : map record to model
+  User --> RegistrationService : User object
+  RegistrationService --> UserAPIController : return User
+  UserAPIController --> LoginComponent : return User
+  LoginComponent -> LoginComponent : redirectBasedOnRole()
+else User not found
+  RegistrationService --> UserAPIController : return null
+  UserAPIController --> LoginComponent : prompt registration
+end
+
+opt Token expired
+  RegistrationService --> UserAPIController : return 401
+  UserAPIController --> LoginComponent : redirect to login
+end
+
+'--- Notes for transition strategy ---
+note right of JWT
+Validated using backend JWT library.
+Token includes role and expiry.
+end note
+
+note right of RegistrationService
+Replaces earlier generic service.
+Uses UserDAO to lookup DB by email (from token).
+Returns registered status.
+end note
+
+note right of LoginComponent
+Front-end uses Redux to store role and redirect
+based on response from backend.
+end note
+
+@enduml

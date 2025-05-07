@@ -1,0 +1,79 @@
+@startuml
+title TP-UC-000 – View Landing Page (Design)
+
+skinparam style strictuml
+skinparam shadowing false
+skinparam DefaultFontName "Segoe UI"
+skinparam SequenceMessageAlign center
+
+' Define visual stereotypes
+skinparam participant {
+  BackgroundColor<<boundary>> #EAF2F8
+  BorderColor<<boundary>> #2D3C50
+
+  BackgroundColor<<control>> #FFF5CC
+  BorderColor<<control>> #DAA520
+
+  BackgroundColor<<store>> #F9EBEA
+  BorderColor<<store>> #B03A2E
+
+  FontName "Segoe UI"
+  FontColor black
+}
+
+skinparam actor {
+  BackgroundColor #FADBD8
+  BorderColor black
+  FontColor black
+  FontName "Segoe UI"
+}
+
+actor Guest
+
+boundary "App.tsx" as App <<boundary>>
+boundary "Navbar.tsx" as Navbar <<boundary>>
+participant "Redux Store" as Store <<store>>
+control "AuthSlice" as AuthService <<control>>
+boundary "Home.tsx" as Home <<boundary>>
+boundary "ImageSlider" <<boundary>>
+boundary "Hero" <<boundary>>
+boundary "CategoryGrid" <<boundary>>
+boundary "FeaturesSection" <<boundary>>
+boundary "Newsletter" <<boundary>>
+
+Guest -> App : Visit root URL
+App -> Store : Initialize Store
+App -> Navbar : Render Navbar
+Navbar -> Store : useSelector(isAuthenticated)
+Store -> AuthService : read auth state
+AuthService --> Store : auth status
+Store --> Navbar : false
+Navbar --> App : Render with login CTA
+
+App -> Home : Render Home Component
+Home -> ImageSlider : Render image slider
+Home -> Hero : Render hero section
+Home -> CategoryGrid : Render categories
+Home -> FeaturesSection : Render features
+Home -> Newsletter : Render newsletter
+Home --> App : Sections ready
+
+App --> Guest : Landing page displayed
+
+Guest -> App : Click Login
+App --> Guest : Redirect to /login
+
+note right of Store #FFFACD
+Design Enhancement: Redux Store and AuthSlice added  
+to reflect actual state management logic in frontend.  
+These replace conceptual User entity from analysis.
+end note
+
+note right of AuthService #FFFACD
+Design Enhancement: AuthSlice introduced  
+as Redux logic for managing auth state.  
+It replaces the abstract AuthService from analysis.
+end note
+
+
+@enduml

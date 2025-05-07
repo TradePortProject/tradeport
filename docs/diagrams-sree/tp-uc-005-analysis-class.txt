@@ -1,0 +1,50 @@
+@startuml
+title TP-UC-005 – Logout (Analysis)
+
+skinparam style strictuml
+skinparam class {
+  FontName "Segoe UI"
+  BackgroundColor #FDFEFE
+  BorderColor black
+  ArrowColor #2D3C50
+}
+
+skinparam stereotype {
+  CBackgroundColor<<boundary>> #EAF2F8
+  CBorderColor<<boundary>> #2D3C50
+
+  CBackgroundColor<<control>> #FFF5CC
+  CBorderColor<<control>> #DAA520
+
+  CBackgroundColor<<entity>> #E0FFE0
+  CBorderColor<<entity>> #2E8B57
+}
+
+package "Frontend" {
+  class "HeaderComponent" <<boundary>> {
+    + onLogoutClick(): void
+  }
+
+  class "SessionService" <<control>> {
+    + clearLocalSession(): void
+  }
+
+  class "JWT" <<entity>> {
+    + token: string
+  }
+
+  HeaderComponent --> SessionService : onLogoutClick()
+  SessionService --> JWT : clear token
+}
+
+note right of HeaderComponent
+Handles logout button click
+in navigation or sidebar.
+end note
+
+note right of SessionService
+Clears JWT from localStorage or Redux.
+No backend API call is made.
+end note
+
+@enduml

@@ -1,0 +1,55 @@
+@startuml
+title TP-UC-000 – View Landing Page (Analysis)
+
+skinparam style strictuml
+skinparam shadowing false
+skinparam DefaultFontName "Segoe UI"
+
+skinparam participant {
+  BackgroundColor<<boundary>> #EAF2F8
+  BorderColor<<boundary>> #2D3C50
+
+  BackgroundColor<<control>> #FFF5CC
+  BorderColor<<control>> #DAA520
+
+  BackgroundColor<<entity>> #E0FFE0
+  BorderColor<<entity>> #2E8B57
+
+  FontName "Segoe UI"
+  FontColor black
+}
+
+skinparam actor {
+  BackgroundColor #FADBD8
+  BorderColor black
+  FontColor black
+  FontName "Segoe UI"
+}
+
+actor Guest
+
+boundary "App" <<boundary>>
+boundary "Navbar" <<boundary>>
+boundary "Home" <<boundary>>
+control "AuthService" <<control>>
+entity "User" <<entity>>
+boundary "LandingSections\n(Hero, Grid, Features)" as Sections <<boundary>>
+
+Guest -> App : Visit root URL
+App -> Navbar : Check login state
+Navbar -> AuthService : isAuthenticated()
+AuthService -> User : verify session/token
+User --> AuthService : user info
+AuthService --> Navbar : false
+Navbar --> App : Render Navbar with Login Button
+
+App -> Home : Render Landing Page
+Home -> Sections : Render sections
+Sections --> Home : Layout ready
+Home --> App : Landing ready
+
+App --> Guest : Display landing page
+Guest -> App : Click login button
+App --> Guest : Redirect to login
+
+@enduml

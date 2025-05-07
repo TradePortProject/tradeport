@@ -1,0 +1,78 @@
+@startuml
+title Tightly Coupled Authentication and Role Handling (Brute Force Sequence)
+
+skinparam style strictuml
+skinparam shadowing false
+skinparam DefaultFontName "Segoe UI"
+skinparam SequenceMessageAlign center
+
+skinparam participant {
+  BackgroundColor<<component>> #EAF2F8
+  BorderColor<<component>> #2D3C50
+
+  BackgroundColor<<control>> #FFF5CC
+  BorderColor<<control>> #DAA520
+
+  BackgroundColor<<store>> #F9EBEA
+  BorderColor<<store>> #B03A2E
+
+  FontName "Segoe UI"
+  FontColor black
+}
+
+skinparam actor {
+  BackgroundColor #FADBD8
+  BorderColor black
+  FontColor black
+  FontName "Segoe UI"
+}
+
+actor Guest
+
+participant "LoginPage" <<component>>
+control "AuthService" <<control>>
+control "AuthController" <<control>>
+control "GoogleTokenValidator" <<control>>
+participant "UserRepository" <<store>>
+control "JwtGenerator" <<control>>
+participant "ReduxStore" <<store>>
+
+Guest -> LoginPage : Clicks "Login with Google"
+activate LoginPage
+
+LoginPage -> AuthService : login(idToken)
+activate AuthService
+
+AuthService -> AuthController : POST /auth/login
+activate AuthController
+
+AuthController -> GoogleTokenValidator : Validate(idToken)
+GoogleTokenValidator --> AuthController : Claims
+
+AuthController -> UserRepository : GetUser(email)
+UserRepository --> AuthController : User or null
+
+AuthController -> UserRepository : SaveUser(user)
+AuthController -> JwtGenerator : GenerateToken(user)
+JwtGenerator --> AuthController : JWT with role
+
+AuthController --> AuthService : JWT
+deactivate AuthController
+
+AuthService -> ReduxStore : dispatch(loginSuccess)
+deactivate AuthService
+
+LoginPage -> LoginPage : navigate("/dashboard")
+LoginPage --> Guest : Redirect
+deactivate LoginPage
+
+note right of AuthController #FFFACD
+Handles too many things: token validation, user lookup,
+role logic, and JWT creation.
+end note
+
+note right of ReduxStore #FFFACD
+Stores JWT and user role for frontend usage.
+end note
+
+@enduml

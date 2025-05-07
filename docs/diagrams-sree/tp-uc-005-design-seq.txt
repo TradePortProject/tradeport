@@ -1,0 +1,65 @@
+@startuml
+title TP-UC-005 – Logout (Design)
+
+skinparam style strictuml
+skinparam shadowing false
+skinparam DefaultFontName "Segoe UI"
+skinparam SequenceMessageAlign center
+
+skinparam participant {
+  BackgroundColor<<component>> #EAF2F8
+  BorderColor<<component>> #2D3C50
+
+  BackgroundColor<<control>> #FFF5CC
+  BorderColor<<control>> #DAA520
+
+  BackgroundColor<<store>> #F9EBEA
+  BorderColor<<store>> #B03A2E
+
+  FontName "Segoe UI"
+  FontColor black
+}
+
+skinparam actor {
+  BackgroundColor #FADBD8
+  BorderColor black
+  FontColor black
+  FontName "Segoe UI"
+}
+
+actor User
+
+participant "HeaderComponent" <<component>>
+control "AuthService" <<control>>
+participant "ReduxStore" <<store>>
+
+User -> HeaderComponent : Clicks "Logout"
+activate HeaderComponent
+
+HeaderComponent -> AuthService : logout()
+activate AuthService
+
+AuthService -> ReduxStore : dispatch(logoutAction)
+deactivate AuthService
+
+HeaderComponent -> HeaderComponent : navigate("/")
+
+HeaderComponent --> User : Redirect to Landing Page
+deactivate HeaderComponent
+
+note right of ReduxStore #FFFACD
+Mapped from User (entity) in analysis.
+JWT and session cleared from auth slice.
+end note
+
+note right of AuthService #FFFACD
+Centralizes reusable logout logic.
+No backend call needed (stateless design).
+end note
+
+note right of HeaderComponent #FFFACD
+Originally analysis boundary (LogoutPage).
+Now redirects using React Router.
+end note
+
+@enduml

@@ -1,0 +1,51 @@
+@startuml
+left to right direction
+
+skinparam actorStyle awesome
+skinparam shadowing false
+skinparam usecase {
+  BorderColor #2D3C50
+  BackgroundColor #EAF2F8
+  ArrowColor #2D3C50
+  ActorBorderColor black
+  ActorBackgroundColor #FADBD8
+  ActorFontColor black
+  FontName "Segoe UI"
+}
+
+title TradePort – Use Case View: Authentication, Registration, Role-Based Redirect, and Session Management
+
+actor Guest
+actor User
+actor Retailer
+actor Wholesaler
+actor Admin
+
+Retailer --|> User
+Wholesaler --|> User
+Admin --|> User
+
+rectangle "TradePort System" {
+
+  (UC-000: View Landing Page) as UC0
+  (UC-001: Login via Google) as UC1
+  (Validate Google Token) as UC1a
+  (UC-002: Check Registration Status & Register if Needed) as UC2
+  (UC-004: Role-Based Redirect After Login) as UC4
+  (UC-005: Logout) as UC5
+  (Clear Session) as UC5a
+}
+
+Guest --> UC0
+Guest --> UC1
+
+UC1 --> UC1a : <<include>>
+UC1 --> UC2 : <<include>>
+UC1 --> UC4 : <<extend>>
+UC5 --> UC5a : <<include>>
+
+User --> UC2
+User --> UC4
+User --> UC5
+
+@enduml

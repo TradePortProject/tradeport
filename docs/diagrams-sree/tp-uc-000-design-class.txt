@@ -1,0 +1,106 @@
+@startuml
+title TP-UC-000 – View Landing Page (Design)
+
+skinparam style strictuml
+skinparam shadowing false
+skinparam class {
+  FontName "Segoe UI"
+  FontColor black
+  BackgroundColor #FDFEFE
+  BorderColor black
+  ArrowColor #2D3C50
+}
+
+skinparam stereotype {
+  CBackgroundColor<<component>> #EAF2F8
+  CBorderColor<<component>> #2D3C50
+
+  CBackgroundColor<<control>> #FFF5CC
+  CBorderColor<<control>> #DAA520
+
+  CBackgroundColor<<store>> #F9EBEA
+  CBorderColor<<store>> #B03A2E
+}
+
+' COMPONENTS
+class "App" <<component>> {
+  + render(): ReactNode
+}
+
+class "Navbar" <<component>> {
+  - isAuthenticated: boolean
+  + render(): ReactNode
+}
+
+class "Home" <<component>> {
+  - images: string[]
+  + render(): ReactNode
+}
+
+class "ImageSlider" <<component>> {
+  - images: string[]
+  - currentIndex: number
+  + setCurrentIndex(index: number): void
+  + render(): ReactNode
+}
+
+class "Hero" <<component>> {
+  + render(): ReactNode
+}
+
+class "CategoryGrid" <<component>> {
+  - categories: Category[]
+  + render(): ReactNode
+}
+
+class "FeaturesSection" <<component>> {
+  - features: Feature[]
+  + render(): ReactNode
+}
+
+class "Newsletter" <<component>> {
+  - email: string
+  + setEmail(email: string): void
+  + handleSubmit(e: FormEvent): void
+  + render(): ReactNode
+}
+
+' REDUX LOGIC
+class "Redux Store" <<store>> {
+  - reducers: Reducer[]
+  + getState(): State
+  + dispatch(action: Action): void
+}
+
+class "AuthSlice" <<control>> {
+  - initialState: AuthState
+  + login(): Action
+  + logout(): Action
+}
+
+' RELATIONSHIPS
+App --> Navbar : renders >
+App --> Home : renders >
+Navbar --> "Redux Store" : subscribes >
+"Redux Store" --> AuthSlice : uses >
+
+Home --> ImageSlider : renders >
+Home --> Hero : renders >
+Home --> CategoryGrid : renders >
+Home --> FeaturesSection : renders >
+Home --> Newsletter : renders >
+
+' NOTES ON TRANSITION STRATEGY
+note right of "Redux Store" #FFFACD
+Design Refinement: Redux Store replaces  
+the conceptual session/token state that  
+was represented by the User entity in analysis.
+end note
+
+note right of AuthSlice #FFFACD
+Design Refinement: AuthSlice implements  
+auth logic that was handled abstractly  
+by AuthService in the analysis model.
+end note
+
+@enduml

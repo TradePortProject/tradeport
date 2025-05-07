@@ -1,0 +1,75 @@
+@startuml
+title Tightly Coupled Authentication and Role Handling (Brute Force Sequence)
+
+skinparam style strictuml
+skinparam shadowing false
+skinparam class {
+  FontName "Segoe UI"
+  BackgroundColor #FDFEFE
+  BorderColor black
+  ArrowColor #2D3C50
+}
+
+skinparam stereotype {
+  CBackgroundColor<<component>> #EAF2F8
+  CBorderColor<<component>> #2D3C50
+
+  CBackgroundColor<<control>> #FFF5CC
+  CBorderColor<<control>> #DAA520
+
+  CBackgroundColor<<store>> #F9EBEA
+  CBorderColor<<store>> #B03A2E
+}
+
+package "Frontend" {
+  class "LoginPage" <<component>> {
+    + handleLogin(idToken: string): void
+  }
+
+  class "AuthService" <<control>> {
+    + login(idToken: string): Promise<void>
+  }
+
+  class "ReduxStore" <<store>> {
+    + authState: AuthState
+    + dispatch(action): void
+  }
+
+  note right of ReduxStore
+  Stores JWT and role for frontend routing.
+  end note
+}
+
+package "Backend" {
+  class "AuthController" <<control>> {
+    + Login(idToken: string): IActionResult
+  }
+
+  class "GoogleTokenValidator" <<control>> {
+    + Validate(idToken): Claims
+  }
+
+  class "UserRepository" <<store>> {
+    + GetUser(email): User
+    + SaveUser(user): void
+  }
+
+  class "JwtGenerator" <<control>> {
+    + GenerateToken(user): string
+  }
+
+  note right of AuthController
+  Tightly coupled: validates token, checks registration,
+  determines role, and generates JWT.
+  end note
+}
+
+LoginPage --> AuthService : login(idToken)
+AuthService --> AuthController : POST /auth/login
+AuthController --> GoogleTokenValidator : Validate(idToken)
+AuthController --> UserRepository : GetUser(email)
+AuthController --> UserRepository : SaveUser(user)
+AuthController --> JwtGenerator : GenerateToken(user)
+AuthController --> AuthService : JWT (role included)
+AuthService --> ReduxStore : dispatch(loginSuccess)
+@enduml

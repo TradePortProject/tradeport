@@ -1,0 +1,47 @@
+@startuml
+title TP-UC-005 – Logout (Analysis)
+
+skinparam style strictuml
+skinparam shadowing false
+skinparam DefaultFontName "Segoe UI"
+skinparam SequenceMessageAlign center
+
+skinparam participant {
+  BackgroundColor<<boundary>> #EAF2F8
+  BorderColor<<boundary>> #2D3C50
+
+  BackgroundColor<<control>> #FFF5CC
+  BorderColor<<control>> #DAA520
+
+  BackgroundColor<<entity>> #E0FFE0
+  BorderColor<<entity>> #2E8B57
+
+  FontName "Segoe UI"
+  FontColor black
+}
+
+skinparam actor {
+  BackgroundColor #FADBD8
+  BorderColor black
+  FontColor black
+  FontName "Segoe UI"
+}
+
+actor User
+
+boundary "HeaderComponent" as Header <<boundary>>
+control "SessionManager" as Session <<control>>
+entity "JWT" as Token <<entity>>
+
+User -> Header : Clicks "Logout"
+Header -> Session : initiateLogout()
+Session -> Token : remove from storage
+Token --> Session : cleared
+Session --> Header : confirm cleared
+Header --> User : Redirect to Landing Page
+
+note right of Session
+Handles session teardown on client-side
+without contacting the backend.
+end note
+@enduml

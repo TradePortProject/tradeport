@@ -1,0 +1,70 @@
+@startuml
+title TP-UC-002 – Check Registration Status (Analysis)
+
+skinparam style strictuml
+skinparam shadowing false
+skinparam class {
+  FontName "Segoe UI"
+  BackgroundColor #FDFEFE
+  BorderColor black
+  ArrowColor #2D3C50
+}
+
+skinparam stereotype {
+  CBackgroundColor<<boundary>> #EAF2F8
+  CBorderColor<<boundary>> #2D3C50
+
+  CBackgroundColor<<control>> #FFF5CC
+  CBorderColor<<control>> #DAA520
+
+  CBackgroundColor<<entity>> #E0FFE0
+  CBorderColor<<entity>> #2E8B57
+}
+
+package "Frontend (React)" {
+  class "LoginComponent" <<boundary>> {
+    + sendTokenToBackend()
+  }
+}
+
+package "Backend (.NET – Auth/User Service)" {
+  class "UserController" <<boundary>> {
+    + checkRegistration(token: string)
+  }
+
+  class "RegistrationService" <<control>> {
+    + verifyUser(token: string): User
+    + classifyUser(user: User): string
+  }
+
+  class "User" <<entity>> {
+    + email: string
+    + role: string
+    + registered: boolean
+  }
+
+  class "Retailer" <<entity>>
+  class "Wholesaler" <<entity>>
+
+  User <|-- Retailer
+  User <|-- Wholesaler
+
+  class "JWT" <<entity>> {
+    + token: string
+    + expiry: Date
+  }
+
+  class "UserDB" <<entity>> {
+    + findUserByEmail(email: string): User
+  }
+
+  ' Relationships within backend
+  UserController --> RegistrationService : calls
+  RegistrationService --> JWT : parses
+  RegistrationService --> UserDB : queries
+  UserDB --> User : returns
+  RegistrationService --> User : verifies
+}
+
+' Frontend to backend interaction
+LoginComponent --> UserController : POST token

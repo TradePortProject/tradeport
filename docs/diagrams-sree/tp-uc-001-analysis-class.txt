@@ -1,0 +1,57 @@
+@startuml
+title TP-UC-001 – Login via Google (Analysis)
+
+skinparam style strictuml
+skinparam shadowing false
+skinparam class {
+  FontName "Segoe UI"
+  BackgroundColor #FDFEFE
+  BorderColor black
+  ArrowColor #2D3C50
+}
+
+skinparam stereotype {
+  CBackgroundColor<<boundary>> #EAF2F8
+  CBorderColor<<boundary>> #2D3C50
+
+  CBackgroundColor<<control>> #FFF5CC
+  CBorderColor<<control>> #DAA520
+
+  CBackgroundColor<<entity>> #E0FFE0
+  CBorderColor<<entity>> #2E8B57
+}
+
+class "LoginPage" <<boundary>> {
+  + onGoogleLoginClick()
+}
+
+class "AuthService" <<control>> {
+  + validateGoogleToken(token: string): boolean
+  + generateJWT(user: User): string
+}
+
+class "JWT" <<entity>> {
+  + token: string
+  + expiry: Date
+}
+
+class "User" <<entity>> {
+  + email: string
+  + role: string
+  + registered: boolean
+}
+
+class "Retailer" <<entity>> {
+}
+
+class "Wholesaler" <<entity>> {
+}
+
+Retailer --|> User
+Wholesaler --|> User
+
+LoginPage --> AuthService : calls
+AuthService --> JWT : creates
+AuthService --> User : fetches/validates
+
+@enduml

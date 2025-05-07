@@ -1,0 +1,54 @@
+@startuml
+title Deployment Diagram – TradePort CI/CD (Multi-Service via DockerHub)
+
+skinparam style strictuml
+skinparam shadowing false
+skinparam DefaultFontName "Segoe UI"
+
+skinparam node {
+  FontColor black
+  FontName "Segoe UI"
+  BorderColor black
+}
+
+skinparam artifact {
+  FontName "Segoe UI"
+  FontColor black
+  BackgroundColor #EAF2F8
+  BorderColor #2D3C50
+}
+
+' CI/CD Runner
+node "GitHub Actions Runner\n(ubuntu-latest)" as CI #FCF3CF {
+  artifact "ci.yml\nFrontend & Backend CI" as CI_SCRIPT
+  artifact "cd.yml\nBuild & Push Docker Images" as CD_SCRIPT
+}
+
+' DockerHub Image Registry
+node "DockerHub Registry" as REGISTRY #D6EAF8 {
+  artifact "tradeport-frontend"
+  artifact "tradeport-backend-identity"
+  artifact "tradeport-backend-order"
+  artifact "tradeport-backend-product"
+  artifact "tradeport-backend-notification"
+  artifact "tradeport-backend-mssql"
+  artifact "tradeport-backend-kafka"
+}
+
+' Developer Machine (Meta Repo)
+node "Developer Machine" as DEV #FADBD8 {
+  artifact "Meta-Repo Scripts\n(Manual Deploy)"
+}
+
+' Droplet – Application Server
+node "Production Droplet" as SERVER #D5F5E3 {
+  artifact "Docker"
+  artifact "Pulled Container Images"
+}
+
+CI_SCRIPT --> REGISTRY : Push CI artifacts
+CD_SCRIPT --> REGISTRY : Tag & Push Docker Images
+
+DEV --> SERVER : Manual Deploy via Meta-Repo
+REGISTRY --> SERVER : docker pull
+@enduml

@@ -1,0 +1,56 @@
+@startuml
+title TP-UC-005 – Logout (Design)
+
+skinparam style strictuml
+skinparam shadowing false
+skinparam class {
+  FontName "Segoe UI"
+  BackgroundColor #FDFEFE
+  BorderColor black
+  ArrowColor #2D3C50
+}
+
+skinparam stereotype {
+  CBackgroundColor<<component>> #EAF2F8
+  CBorderColor<<component>> #2D3C50
+
+  CBackgroundColor<<control>> #FFF5CC
+  CBorderColor<<control>> #DAA520
+
+  CBackgroundColor<<store>> #F9EBEA
+  CBorderColor<<store>> #B03A2E
+}
+
+package "Frontend" {
+  class "HeaderComponent" <<component>> {
+    + handleLogout(): void
+  }
+
+  class "AuthService" <<control>> {
+    + logout(): void
+  }
+
+  class "ReduxStore" <<store>> {
+    + authState: AuthState
+    + dispatch(action): void
+  }
+}
+
+HeaderComponent --> AuthService : logout()
+AuthService --> ReduxStore : dispatch(logoutAction)
+
+note right of HeaderComponent
+Originally derived from LogoutPage (boundary)
+Handles logout initiation and redirect via router.
+end note
+
+note right of AuthService
+Refines control from analysis.
+Encapsulates reusable logout logic.
+end note
+
+note right of ReduxStore
+Replaces User entity from analysis.
+JWT and session cleared from state.
+end note
+@enduml

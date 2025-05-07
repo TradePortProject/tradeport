@@ -1,0 +1,90 @@
+@startuml
+title TP-UC-001 – Login via Google (Design)
+
+skinparam style strictuml
+skinparam shadowing false
+skinparam class {
+  FontName "Segoe UI"
+  BackgroundColor #FDFEFE
+  BorderColor black
+  ArrowColor #2D3C50
+}
+
+skinparam stereotype {
+  CBackgroundColor<<component>> #EAF2F8
+  CBorderColor<<component>> #2D3C50
+
+  CBackgroundColor<<control>> #FFF5CC
+  CBorderColor<<control>> #DAA520
+
+  CBackgroundColor<<model>> #E0FFE0
+  CBorderColor<<model>> #2E8B57
+
+  CBackgroundColor<<token>> #FADBD8
+  CBorderColor<<token>> #A93226
+}
+
+' == Frontend Layer ==
+package "Frontend (React + Redux)" {
+  class "LoginComponent" <<component>> {
+    + handleGoogleLogin(): void
+    + dispatchToken(token: string): void
+  }
+
+  class "GoogleIDToken" <<token>> {
+    + idToken: string
+    + issuedBy: Google
+  }
+}
+
+' == Backend Layer ==
+package "Backend (.NET Core API)" {
+  class "AuthService" <<control>> {
+    + validateGoogleToken(token: string): User
+    + generateJWT(user: User): JWT
+  }
+
+  class "User" <<model>> {
+    + email: string
+    + role: string
+    + registered: boolean
+  }
+
+  class "Retailer" <<model>>
+  class "Wholesaler" <<model>>
+  class "Admin" <<model>>
+
+  class "JWT" <<token>> {
+    + token: string
+    + payload: { email: string, role: string }
+    + expiry: Date
+  }
+
+  User <|-- Retailer
+  User <|-- Wholesaler
+  User <|-- Admin
+}
+
+' --- Relationships ---
+LoginComponent --> GoogleIDToken : obtained from Auth0
+LoginComponent --> AuthService : validateGoogleToken()
+AuthService --> User : lookup/verify
+AuthService --> JWT : generateJWT()
+JWT --> LoginComponent : returned & stored
+
+' --- Notes ---
+note right of LoginComponent
+Frontend component that handles login.\n
+Obtains GoogleIDToken and sends to backend.
+end note
+
+note right of AuthService
+Backend service that validates Google token\n
+and issues custom JWT for session management.
+end note
+
+note right of JWT
+Custom JWT created by backend.\n
+Contains user identity and role for RBAC.
+end note
+@enduml

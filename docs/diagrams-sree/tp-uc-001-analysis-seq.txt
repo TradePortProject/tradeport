@@ -1,0 +1,49 @@
+@startuml
+title TP-UC-001 – Login via Google (Analysis)
+
+skinparam style strictuml
+skinparam shadowing false
+skinparam DefaultFontName "Segoe UI"
+skinparam SequenceMessageAlign center
+
+' Define stereotype-based appearance
+skinparam participant {
+  BackgroundColor<<boundary>> #EAF2F8
+  BorderColor<<boundary>> #2D3C50
+
+  BackgroundColor<<control>> #FFF5CC
+  BorderColor<<control>> #DAA520
+
+  BackgroundColor<<entity>> #E0FFE0
+  BorderColor<<entity>> #2E8B57
+
+  FontName "Segoe UI"
+  FontColor black
+}
+
+skinparam actor {
+  BackgroundColor #FADBD8
+  BorderColor black
+  FontColor black
+  FontName "Segoe UI"
+}
+
+actor Guest
+
+boundary "LoginPage" <<boundary>>
+control "AuthService" <<control>>
+entity "User" <<entity>>
+entity "JWT" <<entity>>
+
+Guest -> LoginPage : Click "Login with Google"
+LoginPage -> AuthService : validateGoogleToken(token)
+AuthService -> User : lookupByEmail()
+User --> AuthService : user info
+
+AuthService -> JWT : generate token
+JWT --> AuthService : JWT string
+
+AuthService --> LoginPage : return JWT
+LoginPage --> Guest : Store JWT, redirect to dashboard
+
+@enduml

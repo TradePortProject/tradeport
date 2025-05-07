@@ -1,0 +1,58 @@
+@startuml
+title TP-UC-000 – View Landing Page (Analysis)
+
+skinparam style strictuml
+skinparam shadowing false
+skinparam class {
+  FontName "Segoe UI"
+  FontColor black
+  BackgroundColor #FDFEFE
+  BorderColor black
+  ArrowColor #2D3C50
+}
+
+skinparam stereotype {
+  CBackgroundColor<<boundary>> #EAF2F8
+  CBorderColor<<boundary>> #2D3C50
+
+  CBackgroundColor<<control>> #FFF5CC
+  CBorderColor<<control>> #DAA520
+
+  CBackgroundColor<<entity>> #E0FFE0
+  CBorderColor<<entity>> #2E8B57
+}
+
+class "App" <<boundary>> {
+  + render()
+}
+
+class "Navbar" <<boundary>> {
+  + render()
+  + showLoginButton(): boolean
+}
+
+class "Home" <<boundary>> {
+  + render()
+}
+
+class "LandingSections\n(Hero, Grid, Features)" as Sections <<boundary>> {
+  + render()
+}
+
+class "AuthService" <<control>> {
+  + isAuthenticated(): boolean
+}
+
+class "User" <<entity>> {
+  + id: string
+  + role: string
+  + token: string
+}
+
+App --> Navbar : renders >
+App --> Home : renders >
+Navbar --> AuthService : checks auth >
+AuthService --> User : verifies session >
+Home --> Sections : renders sections >
+
+@enduml

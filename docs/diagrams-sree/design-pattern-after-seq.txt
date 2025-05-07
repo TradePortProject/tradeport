@@ -1,0 +1,104 @@
+@startuml
+title Tightly Coupled Authentication and Role Handling (After Design Pattern Application)
+
+skinparam style strictuml
+skinparam shadowing false
+skinparam DefaultFontName "Segoe UI"
+skinparam SequenceMessageAlign center
+
+skinparam participant {
+  BackgroundColor<<component>> #EAF2F8
+  BorderColor<<component>> #2D3C50
+
+  BackgroundColor<<control>> #FFF5CC
+  BorderColor<<control>> #DAA520
+
+  BackgroundColor<<store>> #F9EBEA
+  BorderColor<<store>> #B03A2E
+
+  BackgroundColor<<facade>> #FFF9DB
+  BorderColor<<facade>> #B7950B
+
+  BackgroundColor<<strategy>> #E3F2FD
+  BorderColor<<strategy>> #2874A6
+
+  FontName "Segoe UI"
+  FontColor black
+}
+
+skinparam actor {
+  BackgroundColor #FADBD8
+  BorderColor black
+  FontColor black
+  FontName "Segoe UI"
+}
+
+actor User
+
+boundary "LoginPage" <<component>>
+control "AuthService" <<control>>
+control "AuthController" <<control>>
+participant "AuthFacadeService" <<facade>>
+participant "GoogleAuthStrategy" <<strategy>>
+participant "UserRepository" <<store>>
+control "TokenService" <<control>>
+participant "ReduxStore" <<store>>
+
+== Frontend Workflow ==
+
+User -> LoginPage : click Login (idToken)
+LoginPage -> AuthService : login(idToken)
+AuthService -> AuthController : POST /auth/login(idToken)
+
+== Backend Workflow ==
+
+AuthController -> AuthFacadeService : AuthenticateUser(idToken)
+
+note right of AuthFacadeService #FFF9DB
+<<Facade Pattern>>
+Encapsulates:
+- Token validation
+- User lookup/create
+- JWT generation
+end note
+
+AuthFacadeService -> GoogleAuthStrategy : validateToken(idToken)
+
+note right of GoogleAuthStrategy #E3F2FD
+<<Strategy Pattern>>
+- Handles Google-specific token verification
+- Returns claim object
+end note
+
+GoogleAuthStrategy --> AuthFacadeService : claims (email, name, etc.)
+AuthFacadeService -> UserRepository : findByEmail(email)
+alt user not found
+  AuthFacadeService -> UserRepository : save(user)
+end
+
+AuthFacadeService -> TokenService : generateJWT(user)
+TokenService --> AuthFacadeService : JWT
+
+AuthFacadeService --> AuthController : JWT
+AuthController --> AuthService : JWT
+
+== Redux Update ==
+
+AuthService -> ReduxStore : dispatch(loginSuccess(JWT))
+ReduxStore --> User : auth state updated
+
+note right of ReduxStore
+Holds JWT + role
+Used to redirect user based on role
+end note
+
+note right of AuthService
+- Simplifies frontend logic
+- Delegates auth to backend
+end note
+
+note right of LoginPage
+Triggers login + redirect
+Works with Redux and routing
+end note
+@enduml
