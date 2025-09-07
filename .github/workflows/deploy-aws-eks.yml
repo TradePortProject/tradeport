@@ -1,0 +1,298 @@
+name: Deploy All to AWS EKS
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - staging
+        - prod
+
+env:
+  AWS_REGION: ap-southeast-1
+  CLUSTER_NAME: tradeport-eks
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-southeast-1.amazonaws.com
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      TF_VAR_region: ap-southeast-1
+      TF_VAR_environment: ${{ github.event.inputs.environment }}
+      TF_VAR_existing_vpc_id: ${{ secrets.TRADEPORT_VPC_ID }}
+      TF_VAR_existing_public_subnet_ids: ${{ secrets.TRADEPORT_PUBLIC_SUBNETS }}
+      TF_VAR_existing_app_subnet_ids: ${{ secrets.TRADEPORT_APP_SUBNETS }}
+      TF_VAR_existing_db_subnet_ids: ${{ secrets.TRADEPORT_DB_SUBNETS }}
+      TF_VAR_rds_password: ${{ secrets.RDS_PASSWORD }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.11.4
+
+      - name: Terraform Init
+        run: |
+          terraform init -upgrade
+        working-directory: infrastructure/terraform
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: infrastructure/terraform
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan -out=tfplan -detailed-exitcode
+        working-directory: infrastructure/terraform
+        continue-on-error: true
+
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main'
+        run: terraform apply -auto-approve tfplan
+        working-directory: infrastructure/terraform
+
+      - name: Get Terraform Outputs
+        id: tf-outputs
+        run: |
+          echo "cluster_endpoint=$(terraform output -raw cluster_endpoint)" >> $GITHUB_OUTPUT
+          echo "cluster_name=$(terraform output -raw cluster_name)" >> $GITHUB_OUTPUT
+          echo "rds_endpoint=$(terraform output -raw rds_endpoint)" >> $GITHUB_OUTPUT
+        working-directory: infrastructure/terraform
+
+    outputs:
+      cluster_name: ${{ steps.tf-outputs.outputs.cluster_name }}
+      cluster_endpoint: ${{ steps.tf-outputs.outputs.cluster_endpoint }}
+      rds_endpoint: ${{ steps.tf-outputs.outputs.rds_endpoint }}
+      ecr_registry: ${{ env.ECR_REGISTRY }}
+
+  build-and-push:
+    needs: terraform
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        service: 
+          - name: frontend
+            path: services/frontend
+            port: 3001
+          - name: productservice
+            path: services/backend
+            port: 3016
+          - name: orderservice  
+            path: services/backend
+            port: 3017
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Create ECR Repository if not exists
+        run: |
+          aws ecr describe-repositories --repository-names tradeport-${{ matrix.service.name }} || \
+          aws ecr create-repository --repository-name tradeport-${{ matrix.service.name }} \
+            --image-scanning-configuration scanOnPush=true \
+            --encryption-configuration encryptionType=AES256
+
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Build image
+          docker build -t $ECR_REGISTRY/tradeport-${{ matrix.service.name }}:$IMAGE_TAG ${{ matrix.service.path }}
+          docker build -t $ECR_REGISTRY/tradeport-${{ matrix.service.name }}:latest ${{ matrix.service.path }}
+          
+          # Push to ECR
+          docker push $ECR_REGISTRY/tradeport-${{ matrix.service.name }}:$IMAGE_TAG
+          docker push $ECR_REGISTRY/tradeport-${{ matrix.service.name }}:latest
+          
+          echo "Image pushed: $ECR_REGISTRY/tradeport-${{ matrix.service.name }}:$IMAGE_TAG"
+
+  deploy-infrastructure:
+    needs: [terraform, build-and-push]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update Kubeconfig
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ needs.terraform.outputs.cluster_name }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: '3.12.0'
+
+      - name: Verify Cluster Connection
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Create Namespace
+        run: |
+          kubectl create namespace tradeport-microservices --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Install AWS Load Balancer Controller
+        run: |
+          # Add EKS chart repo
+          helm repo add eks https://aws.github.io/eks-charts
+          helm repo update
+          
+          # Install AWS Load Balancer Controller
+          helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
+            -n kube-system \
+            --set clusterName=${{ needs.terraform.outputs.cluster_name }} \
+            --set serviceAccount.create=false \
+            --set serviceAccount.name=aws-load-balancer-controller
+
+      - name: Install External Secrets Operator
+        run: |
+          helm repo add external-secrets https://charts.external-secrets.io
+          helm repo update
+          helm upgrade --install external-secrets external-secrets/external-secrets \
+            -n external-secrets-system \
+            --create-namespace
+
+  deploy-services:
+    needs: [terraform, build-and-push, deploy-infrastructure]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        service: [frontend, productservice, orderservice]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update Kubeconfig
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ needs.terraform.outputs.cluster_name }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+
+      - name: Deploy ${{ matrix.service }}
+        run: |
+          if [ "${{ matrix.service }}" = "frontend" ]; then
+            helm upgrade --install ${{ matrix.service }} ./infrastructure/helm/frontend \
+              --namespace tradeport-microservices \
+              --set image.repository=${{ needs.terraform.outputs.ecr_registry }}/tradeport-${{ matrix.service }} \
+              --set image.tag=${{ github.sha }} \
+              --wait --timeout=600s
+          else
+            helm upgrade --install ${{ matrix.service }} ./infrastructure/helm/backend \
+              --namespace tradeport-microservices \
+              --set image.repository=${{ needs.terraform.outputs.ecr_registry }}/tradeport-${{ matrix.service }} \
+              --set image.tag=${{ github.sha }} \
+              --set service.name=${{ matrix.service }} \
+              --set database.host=${{ needs.terraform.outputs.rds_endpoint }} \
+              --wait --timeout=600s
+          fi
+
+      - name: Verify Deployment
+        run: |
+          kubectl rollout status deployment/${{ matrix.service }} -n tradeport-microservices --timeout=600s
+          kubectl get pods -n tradeport-microservices -l app=${{ matrix.service }}
+
+  post-deploy:
+    needs: [terraform, deploy-services]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update Kubeconfig
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ needs.terraform.outputs.cluster_name }}
+
+      - name: Get Service URLs
+        run: |
+          echo "=== Deployment Summary ==="
+          echo "Cluster: ${{ needs.terraform.outputs.cluster_name }}"
+          echo "Region: ${{ env.AWS_REGION }}"
+          echo "RDS Endpoint: ${{ needs.terraform.outputs.rds_endpoint }}"
+          echo ""
+          echo "=== Service Status ==="
+          kubectl get deployments -n tradeport-microservices
+          echo ""
+          echo "=== Service URLs ==="
+          kubectl get services -n tradeport-microservices
+          echo ""
+          echo "=== Ingress URLs ==="
+          kubectl get ingress -n tradeport-microservices
+
+      - name: Run Health Checks
+        run: |
+          echo "Running health checks..."
+          for service in frontend productservice orderservice; do
+            echo "Checking $service..."
+            kubectl get pods -n tradeport-microservices -l app=$service
+            
+            # Wait for pods to be ready
+            kubectl wait --for=condition=ready pod -l app=$service -n tradeport-microservices --timeout=300s || echo "Warning: $service pods not ready"
+          done
+
+      - name: Notification
+        run: |
+          echo "🚀 Deployment completed successfully!"
+          echo "📊 Services deployed: frontend, productservice, orderservice"
+          echo "🗄️  Database: RDS SQL Server at ${{ needs.terraform.outputs.rds_endpoint }}"
+          echo "🌐 Access your application through the Load Balancer URLs above"
