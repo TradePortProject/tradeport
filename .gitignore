@@ -18,3 +18,13 @@ obj/*
 *.pdb
 *.json
 .terraform/
+node_modules/
+dist/
+coverage/
+.vscode/
+.idea/
+*.swp
+*.suo
+*.log
+.env
+.env.*
