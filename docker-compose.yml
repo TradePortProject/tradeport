@@ -30,7 +30,19 @@ services:
      - "8088:80"
     networks:
      - my_network
-
+     
+  orderservice:
+    extends:
+      file: ../tradeport-backend-orderservice/OrderManagement/docker-compose.yml
+      service: orderservice
+    environment:
+      - AWS_REGION=ap-southeast-1
+      - ASPNETCORE_URLS=http://+:80     # app listens on 3017 inside the container      
+    ports:
+      - "8087:80"                      # host:container  ← use a free host port
+    networks:
+      - my_network
+      
 networks:
   my_network:
     external: true
